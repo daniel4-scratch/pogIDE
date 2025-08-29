@@ -5,6 +5,7 @@ const {
   Menu,
   dialog,
   globalShortcut,
+  nativeTheme,
 } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -18,9 +19,23 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1000,
     height: 700,
+    titleBarStyle: 'default', // Use default title bar
+    backgroundColor: '#1e1e1e', // Dark background color
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
+    show: false, // Don't show until ready
+  });
+
+  // Set dark theme for the window
+  if (isMac) {
+    // Enable dark title bar on macOS
+    win.setVibrancy('dark');
+  }
+
+  // Show window when ready to prevent flash
+  win.once('ready-to-show', () => {
+    win.show();
   });
 
   const template = [
@@ -119,6 +134,9 @@ function registerGlobalShortcuts(win) {
 }
 
 app.whenReady().then(() => {
+  // Force dark theme
+  nativeTheme.themeSource = 'dark';
+  
   createWindow();
 });
 
