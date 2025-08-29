@@ -6,6 +6,7 @@
     <link rel="icon" type="image/x-icon" href="assets/icon.ico" />
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="../node_modules/remixicon/fonts/remixicon.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css" />
   </head>
   <body>
     <div id="controls">
@@ -15,7 +16,12 @@
       </button>
     </div>
     <div id="editor"></div>
-    <div id="output"></div>
+    <!-- <div id="output"></div> -->
+    <div id="terminal"></div>
+    
+    <!-- Load xterm.js from CDN to avoid module conflicts -->
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+    
     <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
     <script src="renderer.js"></script>
   </body>

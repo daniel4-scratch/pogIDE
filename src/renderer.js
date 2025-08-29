@@ -1,3 +1,24 @@
+// xterm.js loaded from CDN should provide Terminal globally
+var term = new Terminal({
+  cursorBlink: true,
+  cursorStyle: 'block',
+  fontFamily: 'monospace',
+  fontSize: 14,
+  theme: {
+    background: '#1e1e1e',
+    foreground: '#d4d4d4',
+    cursor: '#ffffff',
+    selection: '#264f78',
+  }
+});
+
+term.open(document.getElementById("terminal"));
+
+// Write welcome message
+term.writeln('\x1b[36mPython IDE Terminal\x1b[0m');
+term.writeln('\x1b[90mReady to execute Python code...\x1b[0m');
+term.writeln('');
+
 // Configure Monaco Editor to use local assets
 self.MonacoEnvironment = {
   getWorkerUrl: function (moduleId, label) {
@@ -42,21 +63,63 @@ if __name__ == "__main__":
   });
 
   const runBtn = document.getElementById("run");
-  const outputDiv = document.getElementById("output");
 
   // Function to run Python code
   const runPythonCode = async () => {
-    outputDiv.textContent = "Running Python code...";
+    // Clear terminal and show "Running..." message
+    term.clear();
+    term.writeln('\x1b[33mRunning Python code...\x1b[0m'); // Yellow text
+    
     const code = editor.getValue();
     const result = await window.pythonIDE.runCode(code);
-    outputDiv.textContent = result;
+    
+    // Write the result to the terminal
+    if (result.includes("Error:")) {
+      // Display errors in red
+      const lines = result.split('\n');
+      lines.forEach(line => {
+        if (line.startsWith("Error:") || line.trim().startsWith("Traceback") || line.trim().startsWith("File ")) {
+          term.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for errors
+        } else {
+          term.writeln(line);
+        }
+      });
+    } else {
+      // Display normal output
+      const lines = result.split('\n');
+      lines.forEach(line => {
+        if (line.startsWith("Output:")) {
+          term.writeln(`\x1b[32m${line}\x1b[0m`); // Green text for "Output:" header
+        } else {
+          term.writeln(line);
+        }
+      });
+    }
+    
+    // Add a separator line
+    term.writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m'); // Cyan separator
   };
 
-  // Button click handler
+  // Button click handlers
   runBtn.addEventListener("click", runPythonCode);
 
-  // Keyboard shortcut handler
+  const buildBtn = document.getElementById("build");
+  buildBtn.addEventListener("click", () => {
+    term.clear();
+    term.writeln('\x1b[33mBuild functionality not yet implemented\x1b[0m');
+    term.writeln('\x1b[90mThis will be used for project compilation/building in the future\x1b[0m');
+    term.writeln('');
+  });
+
+  // Keyboard shortcut handlers
   window.pythonIDE.onRunShortcut(() => {
     runPythonCode();
+  });
+
+  window.pythonIDE.onBuildShortcut(() => {
+    term.clear();
+    term.writeln('\x1b[33mBuild functionality not yet implemented\x1b[0m');
+    term.writeln('\x1b[90mThis will be used for project compilation/building in the future\x1b[0m');
+    term.writeln('');
   });
 });
