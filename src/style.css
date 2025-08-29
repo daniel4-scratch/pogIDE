@@ -1,0 +1,15 @@
+/* import remixicon from npm */
+@import '~remixicon/fonts/remixicon.css';
+
+#run {
+    background: blue;
+    color: white;
+    border: 0px solid white;
+    border-radius: 5px;
+    width: 50px;
+    height: 25px;
+    cursor: pointer;
+}
+#run i{
+    font-size: 20px;
+}

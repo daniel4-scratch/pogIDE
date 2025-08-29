@@ -9,10 +9,14 @@
     #controls { padding: 5px; background: #222; color: white; flex-shrink: 0; }
     #output { height: 150px; overflow: auto; background: black; color: lime; font-family: monospace; padding: 5px; flex-shrink: 0; }
   </style>
+  <link rel="icon" type="image/x-icon" href="assets/icon.ico">
+  <link rel="stylesheet" href="style.css">
+  <!--add remix icon from npm-->
+  <link rel="stylesheet" href="../node_modules/remixicon/fonts/remixicon.css">
 </head>
 <body>
   <div id="controls">
-    <button id="run">Run</button>
+    <button id="run"><i class="ri-play-fill"></i></button>
   </div>
   <div id="editor"></div>
   <div id="output"></div>
