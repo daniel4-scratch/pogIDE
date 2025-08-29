@@ -46,7 +46,7 @@ function createWindow() {
       submenu: [{ role: "undo" }, { role: "redo" }],
     },
     {
-      label: "Run",
+      label: "Debug",
       submenu: [
         {
           label: "Run",
@@ -56,6 +56,16 @@ function createWindow() {
             }
           },
           accelerator: isMac ? "CommandOrControl+R" : "F5",
+        },
+        {type: 'separator'},
+        {
+          label: "Build",
+          click: () => {
+            if (win && !win.isDestroyed()) {
+              win.webContents.send("build-shortcut-pressed");
+            }
+          },
+          accelerator: isMac ? "CommandOrControl+B" : "F6",
         },
       ],
     },
