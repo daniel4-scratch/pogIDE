@@ -46,6 +46,20 @@ function createWindow() {
       submenu: [{ role: "undo" }, { role: "redo" }],
     },
     {
+      label: "Run",
+      submenu: [
+        {
+          label: "Run",
+          click: () => {
+            if (win && !win.isDestroyed()) {
+              win.webContents.send("run-shortcut-pressed");
+            }
+          },
+          accelerator: isMac ? "CommandOrControl+R" : "F5",
+        },
+      ],
+    },
+    {
       label: "Help",
       submenu: [
         {
