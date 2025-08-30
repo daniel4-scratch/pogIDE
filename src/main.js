@@ -15,6 +15,7 @@ const http = require('http');
 const packageJson = require(path.join(__dirname, '..', 'package.json'));
 
 const isMac = process.platform === "darwin";
+const isMacARM = isMac && process.arch === "arm64";
 const isWin = process.platform === "win32";
 
 // Disable GPU cache to reduce cache conflicts
@@ -269,16 +270,24 @@ app.whenReady().then(async () => {
   let exePath;
 
   // Determine path based on whether app is packaged
-  if (isWin) {
-    if (app.isPackaged) {
-      exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
-    } else {
-      exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
-    }
+  if (isWin || isMacARM) {
+    if (isWin) {
+        if (app.isPackaged) {
+          exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
+        } else {
+          exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
+        }
+      } else if (isMacARM) {
+        if (app.isPackaged) {
+          exePath = path.join(process.resourcesPath, 'app', 'pogscript');
+        } else {
+          exePath = path.join(__dirname, '..', 'app', 'pogscript');
+        }
+      }
 
 
     if (!fs.existsSync(exePath)) {
-      splash.webContents.send("text-update", "Error: pogscript.exe not found");
+      splash.webContents.send("text-update", "Error: pogscript executable not found");
 
       // const result = await dialog.showMessageBox(splash, {
       //   type: 'question',
@@ -297,24 +306,28 @@ app.whenReady().then(async () => {
       });
 
       if (!isOnline) {
-        splash.webContents.send("text-update", "No internet connection. Cannot download pogscript.exe");
+        splash.webContents.send("text-update", "No internet connection. Cannot download pogscript executable");
       } else {
-        splash.webContents.send("text-update", "Downloading pogscript.exe");
+        splash.webContents.send("text-update", "Downloading pogscript executable");
         try {
           const appDir = path.dirname(exePath);
           if (!fs.existsSync(appDir)) {
             fs.mkdirSync(appDir, { recursive: true });
           }
-
-          await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/windows-x84_64.exe", exePath);
-          splash.webContents.send("text-update", "Successfully downloaded pogscript.exe");
+          if(isWin){
+            await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/windows-x84_64.exe", exePath);
+          }else if(isMacARM){
+            await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/macos-arm64", exePath);
+            fs.chmodSync(exePath, 0o755); // Make the file executable on macOS
+          }
+          splash.webContents.send("text-update", "Successfully downloaded pogscript executable");
         } catch (error) {
           console.error('Download failed:', error);
           splash.webContents.send("text-update", "Download failed: " + error.message);
         }
       }
     } else {
-      splash.webContents.send("text-update", "Found pogscript.exe");
+      splash.webContents.send("text-update", "Found pogscript executable");
     }
   } else {
     splash.webContents.send("text-update", "Unsupported platform");
@@ -351,13 +364,21 @@ ipcMain.handle("build-code", async (event, code) => {
   fs.writeFileSync(filePath, code);
 
   return new Promise((resolve, reject) => {
-    if (isWin) {
+    if (isWin || isMacARM) {
       let exePath;
 
-      if (app.isPackaged) {
-        exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
-      } else {
-        exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
+      if (isWin) {
+        if (app.isPackaged) {
+          exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
+        } else {
+          exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
+        }
+      } else if (isMacARM) {
+        if (app.isPackaged) {
+          exePath = path.join(process.resourcesPath, 'app', 'pogscript');
+        } else {
+          exePath = path.join(__dirname, '..', 'app', 'pogscript');
+        }
       }
 
       if (!fs.existsSync(exePath)) {
@@ -412,9 +433,7 @@ ipcMain.handle("build-code", async (event, code) => {
 
         resolve("Build Error: " + error.message);
       });
-    } else if (isMac) {
-      resolve("Build functionality coming soon for macOS");
-    } else {
+    }else {
       resolve("Error: Unsupported platform for build");
     }
   });
@@ -442,13 +461,21 @@ ipcMain.handle("run-code", async (event, code) => {
       resolve(result);
     };
 
-    if (isWin) {
+    if (isWin || isMacARM) {
       let exePath;
 
-      if (app.isPackaged) {
-        exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
-      } else {
-        exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
+      if (isWin) {
+        if (app.isPackaged) {
+          exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
+        } else {
+          exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
+        }
+      } else if (isMacARM) {
+        if (app.isPackaged) {
+          exePath = path.join(process.resourcesPath, 'app', 'pogscript');
+        } else {
+          exePath = path.join(__dirname, '..', 'app', 'pogscript');
+        }
       }
 
       if (!fs.existsSync(exePath)) {
@@ -500,8 +527,6 @@ ipcMain.handle("run-code", async (event, code) => {
 
         finishExecution("Error: " + error.message);
       });
-    } else if (isMac) {
-      finishExecution("Coming soon");
     } else {
       finishExecution("Error: Unsupported platform");
     }
