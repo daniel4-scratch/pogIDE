@@ -5,9 +5,7 @@ const {
   Menu,
   dialog,
   globalShortcut,
-  nativeTheme,
-  Tray,
-  nativeImage
+  nativeTheme
 } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -310,34 +308,6 @@ app.whenReady().then(async () => {
   splash.close();
   nativeTheme.themeSource = "dark";
   createWindow();
-   tray = new Tray('./assets/icon.ico')
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: "PogIDE",
-      enabled: false
-    },
-    {type:"separator"},
-    {
-      label: 'New Window',
-      click: createWindow
-    },
-    { type: 'separator' },
-    {
-      label: 'Restart',
-      click: () => {
-        app.relaunch();
-        app.exit(0);
-      }
-    },
-    {
-      label: 'Quit',
-      click: () => {
-        app.quit();
-      }
-    }
-  ])
-  tray.setToolTip('This is my application.')
-  tray.setContextMenu(contextMenu)
 });
 
 ipcMain.handle("run-code", async (event, code) => {
