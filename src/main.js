@@ -71,9 +71,11 @@ async function downloadFile(url, outputPath) {
 
 async function about() {
   var info = `Version: ${packageJson.version}
-OS: ${os.platform()} ${os.release()}
+OS: ${os.platform()} ${os.release()} ${os.arch()}
 Electron: ${process.versions.electron}
-Nodejs: ${process.versions.node}`
+ElectronBuildID: ${process.versions.electronBuildId}
+Nodejs: ${process.versions.node}
+Chromium: ${process.versions.chrome}`
   const targetWindow = mainWindow || BrowserWindow.getFocusedWindow();
   dialog.showMessageBox(targetWindow, {
     type: 'info',
