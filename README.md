@@ -1,4 +1,4 @@
-# Pogscript IDE Electron
+# Pogscript IDE
 An integrated development environment for Pogscript. Made using electron
 
 ## Development
