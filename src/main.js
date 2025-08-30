@@ -6,6 +6,8 @@ const {
   dialog,
   globalShortcut,
   nativeTheme,
+  Tray,
+  nativeImage
 } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -95,7 +97,6 @@ function createWindow() {
     },
     show: false,
   });
-
   // Set mainWindow only if it's not already set (first window)
   if (!mainWindow) {
     mainWindow = newWindow;
@@ -254,9 +255,10 @@ function registerGlobalShortcuts(win) {
 }
 
 app.whenReady().then(async () => {
+  var buffer = 250;
   var splash = createSplash();
   splash.webContents.send("text-update", "Loading...");
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, buffer));
   splash.webContents.send("text-update", "Checking app folder...");
 
   let exePath;
@@ -304,10 +306,38 @@ app.whenReady().then(async () => {
     splash.webContents.send("text-update", "Unsupported platform");
   }
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, buffer));
   splash.close();
   nativeTheme.themeSource = "dark";
   createWindow();
+   tray = new Tray('./assets/icon.ico')
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "PogIDE",
+      enabled: false
+    },
+    {type:"separator"},
+    {
+      label: 'New Window',
+      click: createWindow
+    },
+    { type: 'separator' },
+    {
+      label: 'Restart',
+      click: () => {
+        app.relaunch();
+        app.exit(0);
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => {
+        app.quit();
+      }
+    }
+  ])
+  tray.setToolTip('This is my application.')
+  tray.setContextMenu(contextMenu)
 });
 
 ipcMain.handle("run-code", async (event, code) => {
