@@ -62,6 +62,6 @@ p {
     bottom: 10px;
     left: 10px;
     font-size: 0.8em;
-    color: #ccc;
+    color: gray;
     user-select: none;
 }
