@@ -115,11 +115,98 @@ self.MonacoEnvironment = {
 require.config({ paths: { 'vs': '../node_modules/monaco-editor/min/vs' } });
 
 require(['vs/editor/editor.main'], function () {
+  // Register Pogscript language
+  monaco.languages.register({ id: 'pogscript' });
+
+  // Define syntax highlighting for Pogscript
+  monaco.languages.setMonarchTokensProvider('pogscript', {
+    tokenizer: {
+      root: [
+        // Variable declarations: TYPE:NAME:VALUE
+        [/(int|str|bool):/, 'keyword.type'],
+        [/:[a-zA-Z_][a-zA-Z0-9_]*:/, 'variable.name'],
+        
+        // Basic commands
+        [/\b(yap|mew|brb|bai|help|cat|mem|memClear)\b/, 'keyword.command'],
+        
+        // Memory operations
+        [/\b(del|cpy|inp|rnd|cnv|memType|memSave|memLoad):/, 'keyword.memory'],
+        
+        // Math operations
+        [/\bmath:/, 'keyword.math'],
+        [/\b(add|sub|mul|div|mod)\b/, 'keyword.operation'],
+        
+        // Conditional operations
+        [/\bif:/, 'keyword.conditional'],
+        [/\b(==|!=|<=|>=|<|>)\b/, 'operator.comparison'],
+        
+        // Variable references: (variableName)
+        [/\([a-zA-Z_][a-zA-Z0-9_]*\)/, 'variable.call'],
+        
+        // File references (.pog files)
+        [/[a-zA-Z_][a-zA-Z0-9_]*\.pog/, 'string.filename'],
+        
+        // Numbers
+        [/\d+/, 'number'],
+        
+        // String content (anything after the last colon on a line)
+        [/:([^:\r\n]*)$/, 'string'],
+        
+        // Variable names (when not in other contexts)
+        [/[a-zA-Z_][a-zA-Z0-9_]*/, 'variable.name'],
+        
+        // Operators and punctuation
+        [/[{}()\[\]]/, 'delimiter.bracket'],
+        [/[;,.]/, 'delimiter'],
+        [/:/, 'operator'],
+        
+        // Whitespace
+        [/\s+/, 'white'],
+        
+        // Comments (if you add them later)
+        [/\/\/.*$/, 'comment'],
+        [/\/\*/, 'comment', '@comment'],
+      ],
+      
+      comment: [
+        [/[^\/*]+/, 'comment'],
+        [/\/\*/, 'comment', '@push'],
+        [/\*\//, 'comment', '@pop'],
+        [/[\/*]/, 'comment']
+      ],
+    }
+  });
+
+  // Define custom theme for Pogscript
+  monaco.editor.defineTheme('pogscript-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'keyword.type', foreground: '#569CD6' },              // Blue for data types (int, str, bool)
+      { token: 'keyword.command', foreground: '#C586C0' },           // Purple for basic commands (yap, mew, brb, etc.)
+      { token: 'keyword.memory', foreground: '#4EC9B0' },            // Teal for memory operations (del, cpy, inp, etc.)
+      { token: 'keyword.math', foreground: '#DCDCAA' },              // Yellow for math operations
+      { token: 'keyword.conditional', foreground: '#C586C0' },       // Purple for conditionals (if)
+      { token: 'keyword.operation', foreground: '#D7BA7D' },         // Light brown for math operations (add, sub, etc.)
+      { token: 'operator.comparison', foreground: '#D4D4D4' },       // White for comparison operators
+      { token: 'string', foreground: '#CE9178' },                    // Orange for string values
+      { token: 'string.filename', foreground: '#CE9178' },           // Orange for .pog filenames
+      { token: 'variable.name', foreground: '#9CDCFE' },             // Light blue for variable names
+      { token: 'variable.call', foreground: '#C586C0' },             // Purple/pink for variable calls like (txt)
+      { token: 'number', foreground: '#B5CEA8' },                    // Green for numbers
+      { token: 'operator', foreground: '#D4D4D4' },                  // White for operators
+      { token: 'delimiter', foreground: '#D4D4D4' },                 // White for delimiters
+      { token: 'comment', foreground: '#6A9955' },                   // Green for comments
+    ],
+    colors: {
+      'editor.background': '#1e1e1e'
+    }
+  });
   const editor = monaco.editor.create(document.getElementById("editor"), {
     value: `str:txt:Hello World!
 yap:(txt)`,
-    language: "text",
-    theme: "vs-dark",
+    language: "pogscript",
+    theme: "pogscript-dark",
     automaticLayout: true
   });
 
