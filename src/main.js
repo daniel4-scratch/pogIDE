@@ -25,6 +25,9 @@ app.commandLine.appendSwitch('--no-sandbox');
 
 let mainWindow;
 
+// Track if code is currently running
+let isCodeRunning = false;
+
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -92,6 +95,9 @@ function createWindow() {
     backgroundColor: "#1e1e1e",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false, // Disable sandbox to allow npm modules in preload
     },
     show: false,
   });
@@ -253,7 +259,7 @@ function registerGlobalShortcuts(win) {
 }
 
 app.whenReady().then(async () => {
-  var buffer = 250;
+  var buffer = 500;
   var splash = createSplash();
   splash.webContents.send("text-update", "Loading...");
   await new Promise(resolve => setTimeout(resolve, buffer));
@@ -311,6 +317,14 @@ app.whenReady().then(async () => {
 });
 
 ipcMain.handle("run-code", async (event, code) => {
+  // Check if code is already running
+  if (isCodeRunning) {
+    return;
+  }
+
+  // Set the flag to indicate code is running
+  isCodeRunning = true;
+
   const tempDir = os.tmpdir();
   const timestamp = Date.now();
   const filePath = path.join(tempDir, `temp_code_${timestamp}.txt`);
@@ -318,6 +332,12 @@ ipcMain.handle("run-code", async (event, code) => {
   fs.writeFileSync(filePath, code);
 
   return new Promise((resolve, reject) => {
+    const finishExecution = (result) => {
+      // Reset the flag when execution is complete
+      isCodeRunning = false;
+      resolve(result);
+    };
+
     if (isWin) {
       let exePath;
 
@@ -329,7 +349,7 @@ ipcMain.handle("run-code", async (event, code) => {
 
       if (!fs.existsSync(exePath)) {
         try { fs.unlinkSync(filePath); } catch (err) { }
-        resolve(`Error: pogscript.exe not found at: ${exePath}`);
+        finishExecution(`Error: pogscript.exe not found at: ${exePath}`);
         return;
       }
 
@@ -364,7 +384,7 @@ ipcMain.handle("run-code", async (event, code) => {
           result = "No output";
         }
 
-        resolve(result);
+        finishExecution(result);
       });
 
       customProcess.on("error", (error) => {
@@ -374,12 +394,12 @@ ipcMain.handle("run-code", async (event, code) => {
           // Ignore cleanup errors
         }
 
-        resolve("Error: " + error.message);
+        finishExecution("Error: " + error.message);
       });
     } else if (isMac) {
-      resolve("Coming soon");
+      finishExecution("Coming soon");
     } else {
-      resolve("Error: Unsupported platform");
+      finishExecution("Error: Unsupported platform");
     }
   });
 });
@@ -390,6 +410,11 @@ ipcMain.handle("set-text", async (event, text) => {
     win.webContents.send("text-update", text);
   });
   return "Text sent successfully";
+});
+
+// IPC handler to check if code is running
+ipcMain.handle("is-code-running", async (event) => {
+  return isCodeRunning;
 });
 
 app.on("will-quit", () => {

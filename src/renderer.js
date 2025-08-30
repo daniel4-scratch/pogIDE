@@ -1,7 +1,7 @@
 //renderer.js - index.html script
 
-// xterm.js loaded from CDN should provide Terminal globally
-var term = new Terminal({
+// Initialize terminal using wrapper functions from preload script
+const terminalInitialized = window.xterm.initialize("terminal", {
   cursorBlink: true,
   cursorStyle: 'block',
   fontFamily: 'monospace',
@@ -14,12 +14,15 @@ var term = new Terminal({
   }
 });
 
-term.open(document.getElementById("terminal"));
+// Handle window resize
+window.addEventListener('resize', () => {
+  window.xterm.fit();
+});
 
 // Write welcome message
-term.writeln('\x1b[36mPogscript IDE Terminal\x1b[0m');
-term.writeln('\x1b[90mReady to execute pogscript code...\x1b[0m');
-term.writeln('');
+window.xterm.writeln('\x1b[36mPogscript IDE Terminal\x1b[0m');
+window.xterm.writeln('\x1b[90mReady to execute pogscript code...\x1b[0m');
+window.xterm.writeln('');
 
 // Configure Monaco Editor to use local assets
 self.MonacoEnvironment = {
@@ -62,8 +65,8 @@ yap:(txt)`,
   // Function to run Pogscript code
   const runPythonCode = async () => {
     // Clear terminal and show "Running..." message
-    term.clear();
-    term.writeln('\x1b[33mRunning Pogscript code...\x1b[0m'); // Yellow text
+    window.xterm.clear();
+    window.xterm.writeln('\x1b[33mRunning Pogscript code...\x1b[0m'); // Yellow text
     
     const code = editor.getValue();
     const result = await window.pogIDE.runCode(code);
@@ -74,9 +77,9 @@ yap:(txt)`,
       const lines = result.split('\n');
       lines.forEach(line => {
         if (line.startsWith("Error:") || line.trim().startsWith("Traceback") || line.trim().startsWith("File ")) {
-          term.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for errors
+          window.xterm.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for errors
         } else {
-          term.writeln(line);
+          window.xterm.writeln(line);
         }
       });
     } else {
@@ -84,15 +87,15 @@ yap:(txt)`,
       const lines = result.split('\n');
       lines.forEach(line => {
         if (line.startsWith("Output:")) {
-          term.writeln(`\x1b[32m${line}\x1b[0m`); // Green text for "Output:" header
+          window.xterm.writeln(`\x1b[32m${line}\x1b[0m`); // Green text for "Output:" header
         } else {
-          term.writeln(line);
+          window.xterm.writeln(line);
         }
       });
     }
     
     // Add a separator line
-    term.writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m'); // Cyan separator
+    window.xterm.writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m'); // Cyan separator
   };
 
   // Button click handlers
@@ -100,10 +103,10 @@ yap:(txt)`,
 
   const buildBtn = document.getElementById("build");
   buildBtn.addEventListener("click", () => {
-    term.clear();
-    term.writeln('\x1b[33mBuild functionality not yet implemented\x1b[0m');
-    term.writeln('\x1b[90mThis will be used for project compilation/building in the future\x1b[0m');
-    term.writeln('');
+    window.xterm.clear();
+    window.xterm.writeln('\x1b[33mBuild functionality not yet implemented\x1b[0m');
+    window.xterm.writeln('\x1b[90mThis will be used for project compilation/building in the future\x1b[0m');
+    window.xterm.writeln('');
   });
 
   // Keyboard shortcut handlers
@@ -112,9 +115,9 @@ yap:(txt)`,
   });
 
   window.pogIDE.onBuildShortcut(() => {
-    term.clear();
-    term.writeln('\x1b[33mBuild functionality not yet implemented\x1b[0m');
-    term.writeln('\x1b[90mThis will be used for project compilation/building in the future\x1b[0m');
-    term.writeln('');
+    window.xterm.clear();
+    window.xterm.writeln('\x1b[33mBuild functionality not yet implemented\x1b[0m');
+    window.xterm.writeln('\x1b[90mThis will be used for project compilation/building in the future\x1b[0m');
+    window.xterm.writeln('');
   });
 });
