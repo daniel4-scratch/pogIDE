@@ -1,17 +1,15 @@
-# Python IDE Electron
+# Pogscript IDE Electron
+An integrated development environment for Pogscript. Made using electron
 
 ## Development
 ```
 npm install
 ```
-To start the application live:
+To start the debug application:
 ```
 npm start
 ```
 To build:
-```
-npm install -g electron-builder
-```
 ```
 npm run build
 ```
