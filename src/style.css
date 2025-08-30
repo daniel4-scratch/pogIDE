@@ -37,6 +37,34 @@ body {
     flex-shrink: 0;
     border-top: 1px solid #333;
     scrollbar-width: none;
+    position: relative;
+}
+
+#terminal-resizer {
+    position: absolute;
+    top: -3px;
+    left: 0;
+    right: 0;
+    height: 6px;
+    cursor: row-resize;
+    background: transparent;
+    z-index: 1000;
+}
+
+#terminal-resizer:hover {
+    background: rgba(0, 122, 204, 0.3);
+}
+
+#terminal-resizer::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    width: 40px;
+    height: 1px;
+    background: #666;
+    border-radius: 1px;
 }
 .xterm{
     scrollbar-width: none;

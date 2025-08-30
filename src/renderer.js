@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Initialize terminal resizer
+  initializeTerminalResizer();
+
   // Handle window resize
   window.addEventListener('resize', () => {
     if (window.xterm.isReady()) {
@@ -32,6 +35,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 200);
 });
+
+// Function to initialize terminal resizer
+function initializeTerminalResizer() {
+  const resizer = document.getElementById('terminal-resizer');
+  const terminal = document.getElementById('terminal');
+  const editor = document.getElementById('editor');
+  let isResizing = false;
+
+  resizer.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+
+    const windowHeight = window.innerHeight;
+    const controlsHeight = document.getElementById('controls').offsetHeight;
+    
+    // Calculate the new terminal height based on mouse position
+    const adjustedMouseY = e.clientY + 20;
+    const newTerminalHeight = Math.max(100, Math.min(windowHeight - controlsHeight - 100, windowHeight - adjustedMouseY));
+    const newEditorHeight = windowHeight - controlsHeight - newTerminalHeight;
+    
+    // Update heights as percentages
+    const terminalPercentage = (newTerminalHeight / windowHeight) * 100;
+    const editorPercentage = (newEditorHeight / windowHeight) * 100;
+    
+    terminal.style.height = `${terminalPercentage}%`;
+    editor.style.height = `${editorPercentage}%`;
+    
+    // Trigger layout updates
+    if (window.xterm && window.xterm.isReady()) {
+      setTimeout(() => window.xterm.fit(), 0);
+    }
+    
+    // Trigger Monaco editor layout update
+    if (window.monacoEditor) {
+      setTimeout(() => window.monacoEditor.layout(), 0);
+    }
+    
+    e.preventDefault();
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+}
 
 // Configure Monaco Editor to use local assets
 self.MonacoEnvironment = {
@@ -63,6 +122,9 @@ yap:(txt)`,
     theme: "vs-dark",
     automaticLayout: true
   });
+
+  // Store editor reference globally for resize functionality
+  window.monacoEditor = editor;
 
   // Ensure the editor resizes properly
   window.addEventListener('resize', () => {
