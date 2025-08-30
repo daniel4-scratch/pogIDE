@@ -45,14 +45,11 @@ Nodejs: ${process.versions.node}`,
   });
 }
 
-var fileSubMenu = [{
-  label: "File",
-  submenu: [
+var fileSubMenu = [
     { label: "New Window", accelerator: "CmdOrCtrl+Shift+N", click: () => { createWindow(); } },
     { type: "separator" },
     { label: "Open Project...", accelerator: "CmdOrCtrl+O", click: () => { /* Open folder logic */ } }
-  ]
-}];
+  ];
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -90,7 +87,7 @@ function createWindow() {
             },
             { type: "separator" },
           ]
-          : fileSubMenu),
+          : [...fileSubMenu, { type: "separator" }]),
         {
           label: "Quit",
           role: "quit",
@@ -98,7 +95,10 @@ function createWindow() {
       ],
     },
     ...(isMac
-      ? fileSubMenu : []),
+      ? [{
+        label: "File",
+        submenu: fileSubMenu
+      }] : []),
     {
       label: "Edit",
       submenu: [
