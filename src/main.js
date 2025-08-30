@@ -5,7 +5,8 @@ const {
   Menu,
   dialog,
   globalShortcut,
-  nativeTheme
+  nativeTheme,
+  clipboard
 } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -68,17 +69,23 @@ async function downloadFile(url, outputPath) {
   });
 }
 
-function about() {
+async function about() {
+  var info = `Version: ${packageJson.version}
+OS: ${os.platform()} ${os.release()}
+Electron: ${process.versions.electron}
+Nodejs: ${process.versions.node}`
   const targetWindow = mainWindow || BrowserWindow.getFocusedWindow();
   dialog.showMessageBox(targetWindow, {
     type: 'info',
     title: 'About Pogscript IDE',
     message: 'Pogscript IDE',
-    detail: `Version: ${packageJson.version}
-OS: ${os.platform()} ${os.release()}
-Electron: ${process.versions.electron}
-Nodejs: ${process.versions.node}`,
-    buttons: ['OK']
+    detail: info,
+    defaultId: 1,
+    buttons: ['OK', "Copy"]
+  }).then((result) => {
+    if (result.response === 1) {
+      clipboard.writeText(info);
+    }
   });
 }
 
