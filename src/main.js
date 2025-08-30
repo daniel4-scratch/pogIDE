@@ -45,6 +45,15 @@ Nodejs: ${process.versions.node}`,
   });
 }
 
+var fileSubMenu = [{
+  label: "File",
+  submenu: [
+    { label: "New Window", accelerator: "CmdOrCtrl+Shift+N", click: () => { createWindow(); } },
+    { type: "separator" },
+    { label: "Open Project...", accelerator: "CmdOrCtrl+O", click: () => { /* Open folder logic */ } }
+  ]
+}];
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1000,
@@ -63,7 +72,7 @@ function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
-    
+
     setTimeout(() => {
       mainWindow.webContents.send("text-update", "Hello from main process!");
     }, 1000);
@@ -81,13 +90,15 @@ function createWindow() {
             },
             { type: "separator" },
           ]
-          : []),
+          : fileSubMenu),
         {
           label: "Quit",
           role: "quit",
         },
       ],
     },
+    ...(isMac
+      ? fileSubMenu : []),
     {
       label: "Edit",
       submenu: [
@@ -199,48 +210,48 @@ app.whenReady().then(async () => {
   let exePath;
 
   // Determine path based on whether app is packaged
-  if(isWin){
+  if (isWin) {
     if (app.isPackaged) {
       exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
     } else {
       exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
     }
-  
 
-  if (!fs.existsSync(exePath)) {
-    splash.webContents.send("text-update", "Error: pogscript.exe not found");
-    
-    const result = await dialog.showMessageBox(splash, {
-      type: 'question',
-      title: 'Missing Executable',
-      message: 'Install missing executable?',
-      detail: 'Do you want to download pogscript.exe?',
-      buttons: ['Yes', 'No'],
-      cancelId: 1
-    });
-    
-    if (result.response == 0) {
-      splash.webContents.send("text-update", "Downloading pogscript.exe");
-      try {
-        const appDir = path.dirname(exePath);
-        if (!fs.existsSync(appDir)) {
-          fs.mkdirSync(appDir, { recursive: true });
+
+    if (!fs.existsSync(exePath)) {
+      splash.webContents.send("text-update", "Error: pogscript.exe not found");
+
+      const result = await dialog.showMessageBox(splash, {
+        type: 'question',
+        title: 'Missing Executable',
+        message: 'Install missing executable?',
+        detail: 'Do you want to download pogscript.exe?',
+        buttons: ['Yes', 'No'],
+        cancelId: 1
+      });
+
+      if (result.response == 0) {
+        splash.webContents.send("text-update", "Downloading pogscript.exe");
+        try {
+          const appDir = path.dirname(exePath);
+          if (!fs.existsSync(appDir)) {
+            fs.mkdirSync(appDir, { recursive: true });
+          }
+
+          await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/windows-x84_64.exe", exePath);
+          splash.webContents.send("text-update", "Successfully downloaded pogscript.exe");
+        } catch (error) {
+          console.error('Download failed:', error);
+          splash.webContents.send("text-update", "Download failed: " + error.message);
         }
-
-        await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/windows-x84_64.exe", exePath);
-        splash.webContents.send("text-update", "Successfully downloaded pogscript.exe");
-      } catch (error) {
-        console.error('Download failed:', error);
-        splash.webContents.send("text-update", "Download failed: " + error.message);
       }
+    } else {
+      splash.webContents.send("text-update", "Found pogscript.exe");
     }
   } else {
-    splash.webContents.send("text-update", "Found pogscript.exe");
+    splash.webContents.send("text-update", "Unsupported platform");
   }
-}else{
-  splash.webContents.send("text-update", "Unsupported platform");
-}
-  
+
   await new Promise(resolve => setTimeout(resolve, 500));
   splash.close();
   nativeTheme.themeSource = "dark";
