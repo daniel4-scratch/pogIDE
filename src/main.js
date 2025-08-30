@@ -289,7 +289,16 @@ app.whenReady().then(async () => {
       //   cancelId: 1
       // });
 
-      if (true) {
+      // Check for internet connection before attempting download
+      const isOnline = await new Promise((resolve) => {
+        require('dns').lookup('github.com', (err) => {
+          resolve(!err);
+        });
+      });
+
+      if (!isOnline) {
+        splash.webContents.send("text-update", "No internet connection. Cannot download pogscript.exe");
+      } else {
         splash.webContents.send("text-update", "Downloading pogscript.exe");
         try {
           const appDir = path.dirname(exePath);
