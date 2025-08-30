@@ -1,3 +1,5 @@
+//renderer.js - index.html script
+
 // xterm.js loaded from CDN should provide Terminal globally
 var term = new Terminal({
   cursorBlink: true,
@@ -15,8 +17,8 @@ var term = new Terminal({
 term.open(document.getElementById("terminal"));
 
 // Write welcome message
-term.writeln('\x1b[36mPython IDE Terminal\x1b[0m');
-term.writeln('\x1b[90mReady to execute Python code...\x1b[0m');
+term.writeln('\x1b[36mPogscript IDE Terminal\x1b[0m');
+term.writeln('\x1b[90mReady to execute pogscript code...\x1b[0m');
 term.writeln('');
 
 // Configure Monaco Editor to use local assets
@@ -43,16 +45,9 @@ require.config({ paths: { 'vs': '../node_modules/monaco-editor/min/vs' } });
 
 require(['vs/editor/editor.main'], function () {
   const editor = monaco.editor.create(document.getElementById("editor"), {
-    value: `print("Hello, World!")
-
-def greet(name):
-    return f"Hello, {name}!"
-
-if __name__ == "__main__":
-    name = "Python Developer"
-    message = greet(name)
-    print(message)`,
-    language: "python",
+    value: `str:txt:Hello World!
+yap:(txt)`,
+    language: "text",
     theme: "vs-dark",
     automaticLayout: true
   });
@@ -64,14 +59,14 @@ if __name__ == "__main__":
 
   const runBtn = document.getElementById("run");
 
-  // Function to run Python code
+  // Function to run Pogscript code
   const runPythonCode = async () => {
     // Clear terminal and show "Running..." message
     term.clear();
-    term.writeln('\x1b[33mRunning Python code...\x1b[0m'); // Yellow text
+    term.writeln('\x1b[33mRunning Pogscript code...\x1b[0m'); // Yellow text
     
     const code = editor.getValue();
-    const result = await window.pythonIDE.runCode(code);
+    const result = await window.pogIDE.runCode(code);
     
     // Write the result to the terminal
     if (result.includes("Error:")) {
@@ -112,11 +107,11 @@ if __name__ == "__main__":
   });
 
   // Keyboard shortcut handlers
-  window.pythonIDE.onRunShortcut(() => {
+  window.pogIDE.onRunShortcut(() => {
     runPythonCode();
   });
 
-  window.pythonIDE.onBuildShortcut(() => {
+  window.pogIDE.onBuildShortcut(() => {
     term.clear();
     term.writeln('\x1b[33mBuild functionality not yet implemented\x1b[0m');
     term.writeln('\x1b[90mThis will be used for project compilation/building in the future\x1b[0m');

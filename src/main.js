@@ -11,31 +11,62 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const http = require('http');
+const packageJson = require(path.join(__dirname, '..', 'package.json'));
 
 const isMac = process.platform === "darwin";
 const isWin = process.platform === "win32";
 
+let mainWindow;
+
+async function downloadFile(url, outputPath) {
+  const { default: fetch } = await import('node-fetch');
+  const res = await fetch(url);
+  const fileStream = fs.createWriteStream(outputPath);
+
+  return new Promise((resolve, reject) => {
+    res.body.pipe(fileStream);
+    res.body.on("error", reject);
+    fileStream.on("finish", resolve);
+  });
+}
+
+function about() {
+  const targetWindow = mainWindow || BrowserWindow.getFocusedWindow();
+  dialog.showMessageBox(targetWindow, {
+    type: 'info',
+    title: 'About Pogscript IDE',
+    message: 'Pogscript IDE',
+    detail: `Version: ${packageJson.version}
+OS: ${os.platform()} ${os.release()}
+Electron: ${process.versions.electron}
+Nodejs: ${process.versions.node}`,
+    buttons: ['OK']
+  });
+}
+
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1000,
     height: 700,
-    titleBarStyle: 'default', // Use default title bar
-    backgroundColor: '#1e1e1e', // Dark background color
+    titleBarStyle: "default",
+    backgroundColor: "#1e1e1e",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
-    show: false, // Don't show until ready
+    show: false,
   });
 
-  // Set dark theme for the window
   if (isMac) {
-    // Enable dark title bar on macOS
-    win.setVibrancy('dark');
+    mainWindow.setVibrancy("dark");
   }
 
-  // Show window when ready to prevent flash
-  win.once('ready-to-show', () => {
-    win.show();
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+    
+    setTimeout(() => {
+      mainWindow.webContents.send("text-update", "Hello from main process!");
+    }, 1000);
   });
 
   const template = [
@@ -43,12 +74,13 @@ function createWindow() {
       label: "File",
       submenu: [
         ...(isMac
-          ? [{
+          ? [
+            {
               label: "About",
-              role: "about"
+              click: () => { about() }
             },
-            { type: "separator" }
-            ]
+            { type: "separator" },
+          ]
           : []),
         {
           label: "Quit",
@@ -58,7 +90,15 @@ function createWindow() {
     },
     {
       label: "Edit",
-      submenu: [{ role: "undo" }, { role: "redo" }],
+      submenu: [
+        { label: "Undo", accelerator: "CmdOrCtrl+Z", selector: "undo:" },
+        { label: "Redo", accelerator: "Shift+CmdOrCtrl+Z", selector: "redo:" },
+        { type: "separator" },
+        { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
+        { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
+        { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
+        { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
+      ]
     },
     {
       label: "Debug",
@@ -66,18 +106,18 @@ function createWindow() {
         {
           label: "Run",
           click: () => {
-            if (win && !win.isDestroyed()) {
-              win.webContents.send("run-shortcut-pressed");
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send("run-shortcut-pressed");
             }
           },
           accelerator: isMac ? "CommandOrControl+R" : "F5",
         },
-        {type: 'separator'},
+        { type: "separator" },
         {
           label: "Build",
           click: () => {
-            if (win && !win.isDestroyed()) {
-              win.webContents.send("build-shortcut-pressed");
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send("build-shortcut-pressed");
             }
           },
           accelerator: isMac ? "CommandOrControl+B" : "F6",
@@ -91,15 +131,18 @@ function createWindow() {
           label: "Toggle Developer Tools",
           accelerator: isMac ? "Cmd+Option+I" : "Ctrl+Shift+I",
           click: () => {
-            win.webContents.toggleDevTools();
+            mainWindow.webContents.toggleDevTools();
           },
         },
-        ...(!isMac ? [
-          { type: "separator" },
-          {
-            label: "About",
-            role: "about"
-          }] : []),
+        ...(!isMac
+          ? [
+            { type: "separator" },
+            {
+              label: "About",
+              click: () => { about() }
+            },
+          ]
+          : []),
       ],
     },
   ];
@@ -107,14 +150,29 @@ function createWindow() {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 
-  win.loadFile(path.join(__dirname, "index.html"));
+  mainWindow.loadFile(path.join(__dirname, "index.html"));
+  registerGlobalShortcuts(mainWindow);
 
-  // Register global shortcuts
-  registerGlobalShortcuts(win);
+  return mainWindow;
+}
+
+function createSplash() {
+  const splash = new BrowserWindow({
+    width: 400,
+    height: 300,
+    frame: false,
+    resizable: false,
+    alwaysOnTop: false,
+    webPreferences: {
+      preload: path.join(__dirname, "splash", "preload.js"),
+    },
+  });
+
+  splash.loadFile(path.join(__dirname, "splash", "splash.html"));
+  return splash;
 }
 
 function registerGlobalShortcuts(win) {
-  // DevTools shortcut
   const devToolsShortcut = isMac
     ? "CommandOrControl+Alt+I"
     : "CommandOrControl+Shift+I";
@@ -124,7 +182,6 @@ function registerGlobalShortcuts(win) {
     }
   });
 
-  // Run Python code shortcut (F5 or Cmd+R)
   const runShortcut = isMac ? "CommandOrControl+R" : "F5";
   globalShortcut.register(runShortcut, () => {
     if (win && !win.isDestroyed()) {
@@ -133,72 +190,158 @@ function registerGlobalShortcuts(win) {
   });
 }
 
-app.whenReady().then(() => {
-  // Force dark theme
-  nativeTheme.themeSource = 'dark';
+app.whenReady().then(async () => {
+  var splash = createSplash();
+  splash.webContents.send("text-update", "Loading...");
+  await new Promise(resolve => setTimeout(resolve, 500));
+  splash.webContents.send("text-update", "Checking app folder...");
+
+  let exePath;
+
+  // Determine path based on whether app is packaged
+  if(isWin){
+    if (app.isPackaged) {
+      exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
+    } else {
+      exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
+    }
   
+
+  if (!fs.existsSync(exePath)) {
+    splash.webContents.send("text-update", "Error: pogscript.exe not found");
+    
+    const result = await dialog.showMessageBox(splash, {
+      type: 'question',
+      title: 'Missing Executable',
+      message: 'Install missing executable?',
+      detail: 'Do you want to download pogscript.exe?',
+      buttons: ['Yes', 'No'],
+      cancelId: 1
+    });
+    
+    if (result.response == 0) {
+      splash.webContents.send("text-update", "Downloading pogscript.exe");
+      try {
+        const appDir = path.dirname(exePath);
+        if (!fs.existsSync(appDir)) {
+          fs.mkdirSync(appDir, { recursive: true });
+        }
+
+        await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/windows-x84_64.exe", exePath);
+        splash.webContents.send("text-update", "Successfully downloaded pogscript.exe");
+      } catch (error) {
+        console.error('Download failed:', error);
+        splash.webContents.send("text-update", "Download failed: " + error.message);
+      }
+    }
+  } else {
+    splash.webContents.send("text-update", "Found pogscript.exe");
+  }
+}else{
+  splash.webContents.send("text-update", "Unsupported platform");
+}
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  splash.close();
+  nativeTheme.themeSource = "dark";
   createWindow();
 });
 
-ipcMain.handle("run-python", async (event, code) => {
-  // Use system temporary directory instead of app directory
+ipcMain.handle("run-code", async (event, code) => {
   const tempDir = os.tmpdir();
   const timestamp = Date.now();
-  const filePath = path.join(tempDir, `temp_python_${timestamp}.py`);
+  const filePath = path.join(tempDir, `temp_code_${timestamp}.txt`);
 
   fs.writeFileSync(filePath, code);
 
   return new Promise((resolve, reject) => {
-    const pythonProcess = spawn("python3", [filePath]);
+    if (isWin) {
+      let exePath;
 
-    let output = "";
-    let errorOutput = "";
-
-    pythonProcess.stdout.on("data", (data) => {
-      output += data.toString();
-    });
-
-    pythonProcess.stderr.on("data", (data) => {
-      errorOutput += data.toString();
-    });
-
-    pythonProcess.on("close", (code) => {
-      // Clean up the temporary file
-      try {
-        fs.unlinkSync(filePath);
-      } catch (err) {
-        // Ignore cleanup errors
+      if (app.isPackaged) {
+        exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
+      } else {
+        exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
       }
 
-      let result = "";
-      if (errorOutput) {
-        result += "Error:\n" + errorOutput;
-      }
-      if (output) {
-        result += (result ? "\n" : "") + "Output:\n" + output;
-      }
-      if (!result) {
-        result = "No output";
+      if (!fs.existsSync(exePath)) {
+        try { fs.unlinkSync(filePath); } catch (err) { }
+        resolve(`Error: pogscript.exe not found at: ${exePath}`);
+        return;
       }
 
-      resolve(result);
-    });
+      const customProcess = spawn(exePath, [filePath]);
 
-    pythonProcess.on("error", (error) => {
-      // Clean up the temporary file
-      try {
-        fs.unlinkSync(filePath);
-      } catch (err) {
-        // Ignore cleanup errors
-      }
+      let output = "";
+      let errorOutput = "";
 
-      resolve(
-        "Error: " +
-          error.message +
-          "\nMake sure Python 3 is installed and available in your PATH."
-      );
-    });
+      customProcess.stdout.on("data", (data) => {
+        output += data.toString();
+      });
+
+      customProcess.stderr.on("data", (data) => {
+        errorOutput += data.toString();
+      });
+
+      customProcess.on("close", (code) => {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          // Ignore cleanup errors
+        }
+
+        let result = "";
+        if (errorOutput) {
+          result += "Error:\n" + errorOutput;
+        }
+        if (output) {
+          result += (result ? "\n" : "") + "Output:\n" + output;
+        }
+        if (!result) {
+          result = "No output";
+        }
+
+        resolve(result);
+      });
+
+      customProcess.on("error", (error) => {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          // Ignore cleanup errors
+        }
+
+        resolve("Error: " + error.message);
+      });
+    } else if (isMac) {
+      resolve("Coming soon");
+    } else {
+      resolve("Error: Unsupported platform");
+    }
   });
+});
+
+// IPC handler for setting text
+ipcMain.handle("set-text", async (event, text) => {
+  BrowserWindow.getAllWindows().forEach(win => {
+    win.webContents.send("text-update", text);
+  });
+  return "Text sent successfully";
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
+});
+
+app.on("window-all-closed", () => {
+  globalShortcut.unregisterAll();
+  app.quit();
+});
+
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
 
 // Cleanup global shortcuts when app quits
@@ -208,9 +351,7 @@ app.on("will-quit", () => {
 
 app.on("window-all-closed", () => {
   globalShortcut.unregisterAll();
-  if (isMac) {
-    app.quit();
-  }
+  app.quit(); // Always quit when all windows are closed
 });
 
 app.on("activate", () => {
