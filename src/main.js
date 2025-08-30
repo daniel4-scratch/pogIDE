@@ -320,7 +320,24 @@ app.whenReady().then(async () => {
 ipcMain.handle("build-code", async (event, code) => {
   const tempDir = os.tmpdir();
   const timestamp = Date.now();
-  const filePath = path.join(tempDir, `temp_code_${timestamp}.txt`);
+  const filePath = path.join(tempDir, `main.pog`);
+  
+  // Show save dialog to let user choose where to save build.pogx
+  const focusedWindow = BrowserWindow.getFocusedWindow();
+  const saveDialogResult = await dialog.showSaveDialog(focusedWindow, {
+    title: 'Save Build Archive',
+    defaultPath: 'build.pogx',
+    filters: [
+      { name: 'Pogscript Archive', extensions: ['pogx'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+
+  if (saveDialogResult.canceled) {
+    return "Build canceled by user";
+  }
+
+  const outputPath = saveDialogResult.filePath;
   
   fs.writeFileSync(filePath, code);
 
@@ -340,8 +357,8 @@ ipcMain.handle("build-code", async (event, code) => {
         return;
       }
 
-      // Use --archive flag for build command
-      const customProcess = spawn(exePath, ['--archive', 'build.pogx', filePath]);
+      // Use --archive flag for build command with user-selected output path
+      const customProcess = spawn(exePath, ['--archive', outputPath, filePath]);
 
       let output = "";
       let errorOutput = "";
@@ -369,7 +386,9 @@ ipcMain.handle("build-code", async (event, code) => {
           result += (result ? "\n" : "") + "Build Output:\n" + output;
         }
         if (!result) {
-          result = "Build completed with no output";
+          result = `Build completed successfully!\nArchive saved to: ${outputPath}`;
+        } else {
+          result += `\nArchive saved to: ${outputPath}`;
         }
 
         resolve(result);

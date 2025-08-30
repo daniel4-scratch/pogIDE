@@ -5,13 +5,14 @@
     <title>Pogger Script IDE</title>
     <link rel="icon" type="image/x-icon" href="assets/icon.ico" />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="other/tooltip.css" />
     <link rel="stylesheet" href="../node_modules/remixicon/fonts/remixicon.css" />
     <link rel="stylesheet" href="../node_modules/@xterm/xterm/css/xterm.css" />
   </head>
   <body>
     <div id="controls">
-      <button id="run" class="button"><i class="ri-play-line"></i></button>
-      <button id="build" class="button green">
+      <button id="run" class="button" data-position="bottom" data-tooltip="Run"><i class="ri-play-line"></i></button>
+      <button id="build" class="button green" data-position="bottom" data-tooltip="Build">
         <i class="ri-hammer-line"></i>
       </button>
     </div>

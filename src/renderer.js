@@ -116,8 +116,45 @@ yap:(txt)`,
 
   const buildBtn = document.getElementById("build");
   buildBtn.addEventListener("click", async () => {
+    if (window.xterm.isReady()) {
+      window.xterm.clear();
+      window.xterm.writeln('\x1b[33mBuilding Pogscript project...\x1b[0m'); // Yellow text
+    }
+    
     const code = editor.getValue();
     const result = await window.pogIDE.buildCode(code);
+    
+    // Display build result in terminal
+    if (window.xterm.isReady()) {
+      if (result.includes("Build Error:")) {
+        // Display errors in red
+        const lines = result.split('\n');
+        lines.forEach(line => {
+          if (line.startsWith("Build Error:") || line.trim().startsWith("Error:")) {
+            window.xterm.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for errors
+          } else {
+            window.xterm.writeln(line);
+          }
+        });
+      } else if (result === "Build canceled by user") {
+        window.xterm.writeln(`\x1b[90m${result}\x1b[0m`); // Gray text for canceled
+      } else {
+        // Display successful build output
+        const lines = result.split('\n');
+        lines.forEach(line => {
+          if (line.startsWith("Build completed successfully!")) {
+            window.xterm.writeln(`\x1b[32m${line}\x1b[0m`); // Green text for success
+          } else if (line.startsWith("Archive saved to:")) {
+            window.xterm.writeln(`\x1b[36m${line}\x1b[0m`); // Cyan text for file path
+          } else {
+            window.xterm.writeln(line);
+          }
+        });
+      }
+      
+      // Add a separator line
+      window.xterm.writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m'); // Cyan separator
+    }
   });
 
   // Keyboard shortcut handlers
@@ -125,12 +162,45 @@ yap:(txt)`,
     runPythonCode();
   });
 
-  window.pogIDE.onBuildShortcut(() => {
+  window.pogIDE.onBuildShortcut(async () => {
     if (window.xterm.isReady()) {
       window.xterm.clear();
-      window.xterm.writeln('\x1b[33mBuild functionality not yet implemented\x1b[0m');
-      window.xterm.writeln('\x1b[90mThis will be used for project compilation/building in the future\x1b[0m');
-      window.xterm.writeln('');
+      window.xterm.writeln('\x1b[33mBuilding Pogscript project...\x1b[0m'); // Yellow text
+    }
+    
+    const code = editor.getValue();
+    const result = await window.pogIDE.buildCode(code);
+    
+    // Display build result in terminal
+    if (window.xterm.isReady()) {
+      if (result.includes("Build Error:")) {
+        // Display errors in red
+        const lines = result.split('\n');
+        lines.forEach(line => {
+          if (line.startsWith("Build Error:") || line.trim().startsWith("Error:")) {
+            window.xterm.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for errors
+          } else {
+            window.xterm.writeln(line);
+          }
+        });
+      } else if (result === "Build canceled by user") {
+        window.xterm.writeln(`\x1b[90m${result}\x1b[0m`); // Gray text for canceled
+      } else {
+        // Display successful build output
+        const lines = result.split('\n');
+        lines.forEach(line => {
+          if (line.startsWith("Build completed successfully!")) {
+            window.xterm.writeln(`\x1b[32m${line}\x1b[0m`); // Green text for success
+          } else if (line.startsWith("Archive saved to:")) {
+            window.xterm.writeln(`\x1b[36m${line}\x1b[0m`); // Cyan text for file path
+          } else {
+            window.xterm.writeln(line);
+          }
+        });
+      }
+      
+      // Add a separator line
+      window.xterm.writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m'); // Cyan separator
     }
   });
 });
