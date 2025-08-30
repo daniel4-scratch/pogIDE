@@ -321,9 +321,75 @@ ipcMain.handle("build-code", async (event, code) => {
   const tempDir = os.tmpdir();
   const timestamp = Date.now();
   const filePath = path.join(tempDir, `temp_code_${timestamp}.txt`);
-  // pogscript.exe --archive build.pogx <file>
-  const result = await window.pogIDE.runCode(`pogscript.exe --archive build.pogx ${filePath}`);
-  return result;
+  
+  fs.writeFileSync(filePath, code);
+
+  return new Promise((resolve, reject) => {
+    if (isWin) {
+      let exePath;
+
+      if (app.isPackaged) {
+        exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
+      } else {
+        exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
+      }
+
+      if (!fs.existsSync(exePath)) {
+        try { fs.unlinkSync(filePath); } catch (err) { }
+        resolve(`Error: pogscript.exe not found at: ${exePath}`);
+        return;
+      }
+
+      // Use --archive flag for build command
+      const customProcess = spawn(exePath, ['--archive', 'build.pogx', filePath]);
+
+      let output = "";
+      let errorOutput = "";
+
+      customProcess.stdout.on("data", (data) => {
+        output += data.toString();
+      });
+
+      customProcess.stderr.on("data", (data) => {
+        errorOutput += data.toString();
+      });
+
+      customProcess.on("close", (code) => {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          // Ignore cleanup errors
+        }
+
+        let result = "";
+        if (errorOutput) {
+          result += "Build Error:\n" + errorOutput;
+        }
+        if (output) {
+          result += (result ? "\n" : "") + "Build Output:\n" + output;
+        }
+        if (!result) {
+          result = "Build completed with no output";
+        }
+
+        resolve(result);
+      });
+
+      customProcess.on("error", (error) => {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          // Ignore cleanup errors
+        }
+
+        resolve("Build Error: " + error.message);
+      });
+    } else if (isMac) {
+      resolve("Build functionality coming soon for macOS");
+    } else {
+      resolve("Error: Unsupported platform for build");
+    }
+  });
 });
 
 ipcMain.handle("run-code", async (event, code) => {
