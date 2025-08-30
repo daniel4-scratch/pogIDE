@@ -279,16 +279,16 @@ app.whenReady().then(async () => {
     if (!fs.existsSync(exePath)) {
       splash.webContents.send("text-update", "Error: pogscript.exe not found");
 
-      const result = await dialog.showMessageBox(splash, {
-        type: 'question',
-        title: 'Missing Executable',
-        message: 'Install missing executable?',
-        detail: 'Do you want to download pogscript.exe?',
-        buttons: ['Yes', 'No'],
-        cancelId: 1
-      });
+      // const result = await dialog.showMessageBox(splash, {
+      //   type: 'question',
+      //   title: 'Missing Executable',
+      //   message: 'Install missing executable?',
+      //   detail: 'Do you want to download pogscript.exe?',
+      //   buttons: ['Yes', 'No'],
+      //   cancelId: 1
+      // });
 
-      if (result.response == 0) {
+      if (true) {
         splash.webContents.send("text-update", "Downloading pogscript.exe");
         try {
           const appDir = path.dirname(exePath);
