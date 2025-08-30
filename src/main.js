@@ -17,7 +17,40 @@ const packageJson = require(path.join(__dirname, '..', 'package.json'));
 const isMac = process.platform === "darwin";
 const isWin = process.platform === "win32";
 
+// Disable GPU cache to reduce cache conflicts
+app.commandLine.appendSwitch('--disable-gpu-cache');
+app.commandLine.appendSwitch('--disable-gpu-sandbox');
+// Reduce some cache-related error messages
+app.commandLine.appendSwitch('--no-sandbox');
+
 let mainWindow;
+
+// Single instance lock
+const gotTheLock = app.requestSingleInstanceLock();
+
+// Suppress some Chromium cache errors in console for cleaner output
+if (!gotTheLock) {
+  // Suppress error output for the brief second instance
+  process.stderr.write = () => {};
+  process.stdout.write = () => {};
+}
+
+if (!gotTheLock) {
+  // Quit immediately without initializing anything to minimize cache conflicts
+  app.exit(0);
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window instead
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      // Create a new window instead of just focusing
+      createWindow();
+    } else {
+      createWindow();
+    }
+  });
+}
 
 async function downloadFile(url, outputPath) {
   const { default: fetch } = await import('node-fetch');
@@ -52,7 +85,7 @@ var fileSubMenu = [
   ];
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
+  const newWindow = new BrowserWindow({
     width: 1000,
     height: 700,
     titleBarStyle: "default",
@@ -63,15 +96,20 @@ function createWindow() {
     show: false,
   });
 
-  if (isMac) {
-    mainWindow.setVibrancy("dark");
+  // Set mainWindow only if it's not already set (first window)
+  if (!mainWindow) {
+    mainWindow = newWindow;
   }
 
-  mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
+  if (isMac) {
+    newWindow.setVibrancy("dark");
+  }
+
+  newWindow.once("ready-to-show", () => {
+    newWindow.show();
 
     setTimeout(() => {
-      mainWindow.webContents.send("text-update", "Hello from main process!");
+      newWindow.webContents.send("text-update", "Hello from main process!");
     }, 1000);
   });
 
@@ -117,8 +155,9 @@ function createWindow() {
         {
           label: "Run",
           click: () => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send("run-shortcut-pressed");
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("run-shortcut-pressed");
             }
           },
           accelerator: isMac ? "CommandOrControl+R" : "F5",
@@ -127,8 +166,9 @@ function createWindow() {
         {
           label: "Build",
           click: () => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send("build-shortcut-pressed");
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("build-shortcut-pressed");
             }
           },
           accelerator: isMac ? "CommandOrControl+B" : "F6",
@@ -142,7 +182,10 @@ function createWindow() {
           label: "Toggle Developer Tools",
           accelerator: isMac ? "Cmd+Option+I" : "Ctrl+Shift+I",
           click: () => {
-            mainWindow.webContents.toggleDevTools();
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.toggleDevTools();
+            }
           },
         },
         ...(!isMac
@@ -161,10 +204,19 @@ function createWindow() {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 
-  mainWindow.loadFile(path.join(__dirname, "index.html"));
-  registerGlobalShortcuts(mainWindow);
+  newWindow.loadFile(path.join(__dirname, "index.html"));
+  registerGlobalShortcuts(newWindow);
 
-  return mainWindow;
+  // Handle window closing
+  newWindow.on('closed', () => {
+    // If the closed window was the main window, reassign mainWindow to another window
+    if (newWindow === mainWindow) {
+      const allWindows = BrowserWindow.getAllWindows();
+      mainWindow = allWindows.length > 0 ? allWindows[0] : null;
+    }
+  });
+
+  return newWindow;
 }
 
 function createSplash() {
