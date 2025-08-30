@@ -317,6 +317,15 @@ app.whenReady().then(async () => {
   createWindow();
 });
 
+ipcMain.handle("build-code", async (event, code) => {
+  const tempDir = os.tmpdir();
+  const timestamp = Date.now();
+  const filePath = path.join(tempDir, `temp_code_${timestamp}.txt`);
+  // pogscript.exe --archive build.pogx <file>
+  const result = await window.pogIDE.runCode(`pogscript.exe --archive build.pogx ${filePath}`);
+  return result;
+});
+
 ipcMain.handle("run-code", async (event, code) => {
   // Check if code is already running
   if (isCodeRunning) {
