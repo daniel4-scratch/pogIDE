@@ -101,6 +101,8 @@ function createWindow() {
   const newWindow = new BrowserWindow({
     width: 1000,
     height: 700,
+    minHeight: 500,
+    minWidth: 500,
     titleBarStyle: "default",
     backgroundColor: "#1e1e1e",
     webPreferences: {
