@@ -134,6 +134,7 @@ function createWindow() {
         {
           label: "Quit",
           role: "quit",
+          accelerator: isMac ? "Command+Q" : "Ctrl+Q"
         },
       ],
     },
