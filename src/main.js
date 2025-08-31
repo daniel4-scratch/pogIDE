@@ -13,11 +13,17 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const http = require('http');
+const { checkExePath, installExe, uninstallExe } = require("./utils/installer.js");
 const packageJson = require(path.join(__dirname, '..', 'package.json'));
 
-const isMac = process.platform === "darwin";
-const isMacARM = isMac && process.arch === "arm64";
-const isWin = process.platform === "win32";
+let isMac = process.platform === "darwin";
+let isMacARM = isMac && process.arch === "arm64";
+let isWin = process.platform === "win32";
+
+// Global config variables
+let configData;
+let configPath;
+
 
 // Disable GPU cache to reduce cache conflicts
 app.commandLine.appendSwitch('--disable-gpu-cache');
@@ -36,8 +42,8 @@ const gotTheLock = app.requestSingleInstanceLock();
 // Suppress some Chromium cache errors in console for cleaner output
 if (!gotTheLock) {
   // Suppress error output for the brief second instance
-  process.stderr.write = () => {};
-  process.stdout.write = () => {};
+  process.stderr.write = () => { };
+  process.stdout.write = () => { };
 }
 
 if (!gotTheLock) {
@@ -57,18 +63,6 @@ if (!gotTheLock) {
   });
 }
 
-async function downloadFile(url, outputPath) {
-  const { default: fetch } = await import('node-fetch');
-  const res = await fetch(url);
-  const fileStream = fs.createWriteStream(outputPath);
-
-  return new Promise((resolve, reject) => {
-    res.body.pipe(fileStream);
-    res.body.on("error", reject);
-    fileStream.on("finish", resolve);
-  });
-}
-
 async function about() {
   var info = `Version: ${packageJson.version}
 OS: ${os.platform()} ${os.release()} ${os.arch()}
@@ -76,26 +70,25 @@ Electron: ${process.versions.electron}
 ElectronBuildID: ${process.versions.electronBuildId}
 Nodejs: ${process.versions.node}
 Chromium: ${process.versions.chrome}`
-  const targetWindow = mainWindow || BrowserWindow.getFocusedWindow();
-  dialog.showMessageBox(targetWindow, {
+  //copy details dialog
+  const result = await dialog.showMessageBox(mainWindow, {
     type: 'info',
     title: 'About Pogscript IDE',
     message: 'Pogscript IDE',
     detail: info,
-    defaultId: 1,
-    buttons: ['OK', "Copy"]
-  }).then((result) => {
-    if (result.response === 1) {
-      clipboard.writeText(info);
-    }
+    defaultId: 0,
+    buttons: ["Copy", "OK"]
   });
+  if (result.response === 0) {
+    clipboard.writeText(info);
+  }
 }
 
 var fileSubMenu = [
-    { label: "New Window", accelerator: "CmdOrCtrl+Shift+N", click: () => { createWindow(); } },
-    { type: "separator" },
-    { label: "Open Project...", accelerator: "CmdOrCtrl+O", click: () => { /* Open folder logic */ } }
-  ];
+  { label: "New Window", accelerator: "CmdOrCtrl+Shift+N", click: () => { createWindow(); } },
+  { type: "separator" },
+  { label: "Open Project...", accelerator: "CmdOrCtrl+O", click: () => { /* Open folder logic */ } }
+];
 
 function createWindow() {
   const newWindow = new BrowserWindow({
@@ -168,7 +161,7 @@ function createWindow() {
       ]
     },
     {
-      label: "Debug",
+      label: "Run",
       submenu: [
         {
           label: "Run",
@@ -180,7 +173,6 @@ function createWindow() {
           },
           accelerator: isMac ? "CommandOrControl+R" : "F5",
         },
-        { type: "separator" },
         {
           label: "Build",
           click: () => {
@@ -191,6 +183,70 @@ function createWindow() {
           },
           accelerator: isMac ? "CommandOrControl+B" : "F6",
         },
+        { type: "separator" },
+        {
+          type: "submenu",
+          label: "Advanced",
+          submenu: [
+            {
+              type: "checkbox",
+              label: "Auto Install Pogscript",
+              checked: configData.autoInstallPogscript,
+              click: (item) => {
+                configData.autoInstallPogscript = item.checked;
+                saveConfig();
+              }
+            },
+            {
+              label: !fs.existsSync(checkExePath()) ? "Reinstall Pogscript" : "Install Pogscript",
+              click: async () => {
+                var splash = createSplash();
+                if (isWin || isMacARM) {
+                  const exePath = checkExePath();
+
+                  const isOnline = await new Promise((resolve) => {
+                    require('dns').lookup('github.com', (err) => {
+                      resolve(!err);
+                    });
+                  });
+
+                  if (!isOnline) {
+                    splash.webContents.send("text-update", "No internet connection. Cannot download pogscript executable");
+                  } else {
+                    splash.webContents.send("text-update", "Downloading pogscript executable");
+                    const result = await installExe(exePath, splash);
+                    splash.webContents.send("text-update", result);
+                  }
+                } else {
+                  splash.webContents.send("text-update", "Unsupported platform");
+                }
+                setTimeout(() => {
+                  splash.close();
+                }, 500);
+              }
+            },
+            {
+              label: "Uninstall Pogscript",
+              click: async () => {
+                var splash = createSplash();
+                splash.webContents.send("text-update", "Uninstalling pogscript...");
+                const exePath = checkExePath();
+                const result = await uninstallExe(exePath);
+                splash.webContents.send("text-update", result);
+                setTimeout(() => {
+                  splash.close();
+                }, 500);
+              }
+            },
+            {
+              label: "Github",
+              click: () => {
+                require("electron").shell.openExternal("https://github.com/daniel4-scratch/pogger-script");
+              }
+            }
+
+          ]
+        }
       ],
     },
     {
@@ -271,76 +327,90 @@ function registerGlobalShortcuts(win) {
   });
 }
 
-app.whenReady().then(async () => {
-  var buffer = 500;
-  var splash = createSplash();
-  splash.webContents.send("text-update", "Loading...");
-  await new Promise(resolve => setTimeout(resolve, buffer));
-  splash.webContents.send("text-update", "Checking app folder...");
+function getConfigPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'app', 'config.json');
+  } else {
+    return path.join(__dirname, '..', 'app', 'config.json');
+  }
+}
 
-  let exePath;
+function saveConfig() {
+  if (configData && configPath) {
+    fs.writeFileSync(configPath, JSON.stringify(configData, null, 2));
+  }
+}
+
+function config() {
+  //create config.json if cant find
+  const jsonTemplate = {
+    autoInstallPogscript: true
+  };
+  
+  configPath = getConfigPath();
+
+  if (!fs.existsSync(configPath)) {
+    // Create the directory if it doesn't exist
+    const dirPath = path.dirname(configPath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+    fs.writeFileSync(configPath, JSON.stringify(jsonTemplate));
+    configData = jsonTemplate;
+    return jsonTemplate;
+  } else {
+    configData = JSON.parse(fs.readFileSync(configPath));
+    return configData;
+  }
+}app.whenReady().then(async () => {
+  try {
+    config(); // Initialize global configData and configPath
+    var buffer = 500;
+    var splash = createSplash();
+    splash.webContents.send("text-update", "Loading...");
+    await new Promise(resolve => setTimeout(resolve, buffer));
+    splash.webContents.send("text-update", "Checking app folder...");
 
   // Determine path based on whether app is packaged
   if (isWin || isMacARM) {
-    if (isWin) {
-        if (app.isPackaged) {
-          exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
-        } else {
-          exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
-        }
-      } else if (isMacARM) {
-        if (app.isPackaged) {
-          exePath = path.join(process.resourcesPath, 'app', 'pogscript');
-        } else {
-          exePath = path.join(__dirname, '..', 'app', 'pogscript');
-        }
-      }
+    const exePath = checkExePath();
 
+    if (configData.autoInstallPogscript) {
+      if (!fs.existsSync(exePath)) {
+        splash.webContents.send("text-update", "Error: pogscript executable not found");
 
-    if (!fs.existsSync(exePath)) {
-      splash.webContents.send("text-update", "Error: pogscript executable not found");
+        // const result = await dialog.showMessageBox(splash, {
+        //   type: 'question',
+        //   title: 'Missing Executable',
+        //   message: 'Install missing executable?',
+        //   detail: 'Do you want to download pogscript.exe?',
+        //   buttons: ['Yes', 'No'],
+        //   cancelId: 1
+        // });
 
-      // const result = await dialog.showMessageBox(splash, {
-      //   type: 'question',
-      //   title: 'Missing Executable',
-      //   message: 'Install missing executable?',
-      //   detail: 'Do you want to download pogscript.exe?',
-      //   buttons: ['Yes', 'No'],
-      //   cancelId: 1
-      // });
+        // Check for internet connection before attempting download
 
-      // Check for internet connection before attempting download
-      const isOnline = await new Promise((resolve) => {
-        require('dns').lookup('github.com', (err) => {
-          resolve(!err);
+        const isOnline = await new Promise((resolve) => {
+          require('dns').lookup('github.com', (err) => {
+            resolve(!err);
+          });
         });
-      });
 
-      if (!isOnline) {
-        splash.webContents.send("text-update", "No internet connection. Cannot download pogscript executable");
-      } else {
-        splash.webContents.send("text-update", "Downloading pogscript executable");
-        try {
-          const appDir = path.dirname(exePath);
-          if (!fs.existsSync(appDir)) {
-            fs.mkdirSync(appDir, { recursive: true });
-          }
-          if(isWin){
-            await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/windows-x84_64.exe", exePath);
-          }else if(isMacARM){
-            await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/macos-arm64", exePath);
-            fs.chmodSync(exePath, 0o755); // Make the file executable on macOS
-          }
-          splash.webContents.send("text-update", "Successfully downloaded pogscript executable");
-        } catch (error) {
-          console.error('Download failed:', error);
-          splash.webContents.send("text-update", "Download failed: " + error.message);
+        if (!isOnline) {
+          splash.webContents.send("text-update", "No internet connection. Cannot download pogscript executable");
+        } else {
+          splash.webContents.send("text-update", "Downloading pogscript executable");
+          const result = await installExe(exePath, splash);
+          splash.webContents.send("text-update", result);
         }
+
+      } else {
+        splash.webContents.send("text-update", "Found pogscript executable");
       }
     } else {
-      splash.webContents.send("text-update", "Found pogscript executable");
+      splash.webContents.send("text-update", "Pogscript auto-install disabled");
     }
-  } else {
+  }else{
     splash.webContents.send("text-update", "Unsupported platform");
   }
 
@@ -348,13 +418,20 @@ app.whenReady().then(async () => {
   splash.close();
   nativeTheme.themeSource = "dark";
   createWindow();
+  } catch (error) {
+    console.error('Error during app initialization:', error);
+    // You can also show an error dialog to the user if needed
+    if (splash && !splash.isDestroyed()) {
+      splash.webContents.send("text-update", "Error during initialization: " + error.message);
+    }
+  }
 });
 
 ipcMain.handle("build-code", async (event, code) => {
   const tempDir = os.tmpdir();
   const timestamp = Date.now();
   const filePath = path.join(tempDir, `main.pog`);
-  
+
   // Show save dialog to let user choose where to save build.pogx
   const focusedWindow = BrowserWindow.getFocusedWindow();
   const saveDialogResult = await dialog.showSaveDialog(focusedWindow, {
@@ -371,26 +448,12 @@ ipcMain.handle("build-code", async (event, code) => {
   }
 
   const outputPath = saveDialogResult.filePath;
-  
+
   fs.writeFileSync(filePath, code);
 
   return new Promise((resolve, reject) => {
     if (isWin || isMacARM) {
-      let exePath;
-
-      if (isWin) {
-        if (app.isPackaged) {
-          exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
-        } else {
-          exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
-        }
-      } else if (isMacARM) {
-        if (app.isPackaged) {
-          exePath = path.join(process.resourcesPath, 'app', 'pogscript');
-        } else {
-          exePath = path.join(__dirname, '..', 'app', 'pogscript');
-        }
-      }
+      const exePath = checkExePath();
 
       if (!fs.existsSync(exePath)) {
         try { fs.unlinkSync(filePath); } catch (err) { }
@@ -444,7 +507,7 @@ ipcMain.handle("build-code", async (event, code) => {
 
         resolve("Build Error: " + error.message);
       });
-    }else {
+    } else {
       resolve("Error: Unsupported platform for build");
     }
   });
@@ -473,21 +536,7 @@ ipcMain.handle("run-code", async (event, code) => {
     };
 
     if (isWin || isMacARM) {
-      let exePath;
-
-      if (isWin) {
-        if (app.isPackaged) {
-          exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
-        } else {
-          exePath = path.join(__dirname, '..', 'app', 'pogscript.exe');
-        }
-      } else if (isMacARM) {
-        if (app.isPackaged) {
-          exePath = path.join(process.resourcesPath, 'app', 'pogscript');
-        } else {
-          exePath = path.join(__dirname, '..', 'app', 'pogscript');
-        }
-      }
+      const exePath = checkExePath();
 
       if (!fs.existsSync(exePath)) {
         try { fs.unlinkSync(filePath); } catch (err) { }
