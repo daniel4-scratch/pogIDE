@@ -90,7 +90,7 @@ body {
 #controls .button {
     background: var(--primary-color);
     color: white;
-    border: 2px solid var(--primary-color);
+    border: 0px solid var(--primary-color);
     border-radius: 3px;
     width: 50px;
     height: 100%;
@@ -111,7 +111,7 @@ body {
 
 #controls .button.green {
     background: var(--green-color);
-    border: 2px solid var(--green-color);
+    border: 0px solid var(--green-color);
 }
 
 #controls .button.green:hover {
