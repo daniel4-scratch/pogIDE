@@ -14,6 +14,7 @@ const fs = require("fs");
 const os = require("os");
 const http = require('http');
 const { checkExePath, installExe, uninstallExe } = require("./utils/installer.js");
+const { TIMEOUT } = require("dns");
 const packageJson = require(path.join(__dirname, '..', 'package.json'));
 
 let isMac = process.platform === "darwin";
@@ -292,6 +293,7 @@ function createWindow() {
                   if (!isOnline) {
                     splash.webContents.send("text-update", "No internet connection. Cannot download pogscript executable");
                   } else {
+                    await new Promise(resolve => setTimeout(resolve, 1));
                     splash.webContents.send("text-update", "Downloading pogscript executable");
                     const result = await installExe(exePath, splash);
                     splash.webContents.send("text-update", result);
