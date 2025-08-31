@@ -72,7 +72,10 @@ function createSplash() {
         height: 300,
         frame: false,
         resizable: false,
-        alwaysOnTop: false,
+        alwaysOnTop: true,
+        roundedCorners: false,
+        skipTaskbar: true,
+        hasShadow: true,
         webPreferences: {
             preload: path.join(__dirname, '..', '..', 'splash', 'preload.js'),
         },
