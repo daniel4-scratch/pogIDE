@@ -89,6 +89,12 @@ Chromium: ${process.versions.chrome}`
 
 var fileSubMenu = [
   { label: "New Window", accelerator: "CmdOrCtrl+Shift+N", click: () => { createWindow(); } },
+  { label: "Close Window", accelerator: isMac ? "Cmd+W" : "Alt+F4", click: () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      if (focusedWindow && !focusedWindow.isDestroyed()) {
+        focusedWindow.close();
+      }
+    } },
   { type: "separator" },
   { label: "Open Project...", accelerator: "CmdOrCtrl+O", click: () => { /* Open folder logic */ } }
 ];
@@ -796,6 +802,7 @@ app.on("will-quit", () => {
 });
 
 app.on("window-all-closed", () => {
+  console.log("All windows closed, exiting...");
   globalShortcut.unregisterAll();
   app.quit(); // Always quit when all windows are closed
 });
