@@ -117,10 +117,6 @@ function createWindow() {
 
   newWindow.once("ready-to-show", () => {
     newWindow.show();
-
-    setTimeout(() => {
-      newWindow.webContents.send("text-update", "Hello from main process!");
-    }, 1000);
   });
 
   const template = [
@@ -186,11 +182,11 @@ function createWindow() {
         { type: "separator" },
         {
           type: "submenu",
-          label: "Advanced",
+          label: "Pogscript",
           submenu: [
             {
               type: "checkbox",
-              label: "Auto Install Pogscript",
+              label: "Auto Install",
               checked: configData.autoInstallPogscript,
               click: (item) => {
                 configData.autoInstallPogscript = item.checked;
@@ -198,7 +194,7 @@ function createWindow() {
               }
             },
             {
-              label: !fs.existsSync(checkExePath()) ? "Reinstall Pogscript" : "Install Pogscript",
+              label: !fs.existsSync(checkExePath()) ? "Reinstall" : "Install",
               click: async () => {
                 var splash = createSplash();
                 if (isWin || isMacARM) {
@@ -226,7 +222,7 @@ function createWindow() {
               }
             },
             {
-              label: "Uninstall Pogscript",
+              label: "Uninstall",
               click: async () => {
                 var splash = createSplash();
                 splash.webContents.send("text-update", "Uninstalling pogscript...");
