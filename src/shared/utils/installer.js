@@ -27,13 +27,13 @@ function checkExePath() {
         if (app.isPackaged) {
             exePath = path.join(process.resourcesPath, 'app', 'pogscript.exe');
         } else {
-            exePath = path.join(__dirname, '..', '..', 'app', 'pogscript.exe');
+            exePath = path.join(__dirname, '..', '..', '..', 'app', 'pogscript.exe');
         }
     } else if (isMacARM) {
         if (app.isPackaged) {
             exePath = path.join(process.resourcesPath, 'app', 'pogscript');
         } else {
-            exePath = path.join(__dirname, '..', '..', 'app', 'pogscript');
+            exePath = path.join(__dirname, '..', '..', '..', 'app', 'pogscript');
         }
     }
     return exePath;
