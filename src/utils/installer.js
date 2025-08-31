@@ -6,6 +6,7 @@ let isMac = process.platform === "darwin";
 let isMacARM = isMac && process.arch === "arm64";
 let isWin = process.platform === "win32";
 
+// Download helper
 async function downloadFile(url, outputPath) {
   const { default: fetch } = await import('node-fetch');
   const res = await fetch(url);
@@ -18,6 +19,7 @@ async function downloadFile(url, outputPath) {
   });
 }
 
+// Resolve pogscript executable path
 function checkExePath() {
     let exePath;
 
@@ -37,6 +39,7 @@ function checkExePath() {
     return exePath;
 }
 
+// Download and place pogscript executable
 async function installExe(exePath) {
     const isOnline = await new Promise((resolve) => {
         require('dns').lookup('github.com', (err) => {
@@ -56,7 +59,7 @@ async function installExe(exePath) {
                 await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/windows-x84_64.exe", exePath);
             } else if (isMacARM) {
                 await downloadFile("https://github.com/daniel4-scratch/pogger-script/releases/download/0.1.0a-b1/macos-arm64", exePath);
-                fs.chmodSync(exePath, 0o755); // Make the file executable on macOS
+                fs.chmodSync(exePath, 0o755); // Mark executable on macOS
             }
             return "Successfully downloaded pogscript executable";
         } catch (error) {
@@ -66,6 +69,7 @@ async function installExe(exePath) {
     }
 }
 
+// Remove executable
 function uninstallExe(exePath) {
     return new Promise((resolve, reject) => {
         fs.unlink(exePath, (err) => {

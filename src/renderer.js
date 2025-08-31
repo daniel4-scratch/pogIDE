@@ -1,18 +1,17 @@
-//renderer.js - index.html script
+// Renderer script
 
-// Wait for DOM to be ready and then initialize terminal
 document.addEventListener('DOMContentLoaded', () => {
   // --- View Menu Toggle Handlers ---
   const controlsBar = document.getElementById('controls');
   const terminal = document.getElementById('terminal');
 
-  // Helper to toggle display
+  // Toggle utility
   function toggleDisplay(element) {
     if (!element) return;
     element.style.display = (element.style.display === 'none') ? '' : 'none';
   }
 
-  // Listen for IPC events from main process
+  // View menu events
   window.pogIDE.onToggleControlsBar(() => {
     toggleDisplay(controlsBar);
     // Optionally, trigger layout updates if needed
@@ -24,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.xterm && window.xterm.isReady()) setTimeout(() => window.xterm.fit(), 0);
     if (window.monacoEditor) setTimeout(() => window.monacoEditor.layout(), 0);
   });
-  // Initialize terminal using wrapper functions from preload script
+  // Init terminal
   const terminalInitialized = window.xterm.initialize("terminal", {
     cursorBlink: true,
     cursorStyle: 'block',
@@ -38,17 +37,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Initialize terminal resizer
+  // Init terminal resizer
   initializeTerminalResizer();
 
-  // Handle window resize
+  // Window resize
   window.addEventListener('resize', () => {
     if (window.xterm.isReady()) {
       window.xterm.fit();
     }
   });
 
-  // Write welcome message after a short delay to ensure terminal is ready
+  // Welcome
   setTimeout(() => {
     if (window.xterm.isReady()) {
       window.xterm.writeln('\x1b[36mPogscript IDE Terminal\x1b[0m');
@@ -58,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 200);
 });
 
-// Function to initialize terminal resizer
+// Terminal resizer
 function initializeTerminalResizer() {
   const resizer = document.getElementById('terminal-resizer');
   const terminal = document.getElementById('terminal');
@@ -114,7 +113,7 @@ function initializeTerminalResizer() {
   });
 }
 
-// Configure Monaco Editor to use local assets
+// Monaco worker URLs
 self.MonacoEnvironment = {
   getWorkerUrl: function (moduleId, label) {
     if (label === 'json') {
@@ -133,14 +132,14 @@ self.MonacoEnvironment = {
   }
 };
 
-// Use the AMD loader approach with local monaco
+// AMD loader path
 require.config({ paths: { 'vs': '../node_modules/monaco-editor/min/vs' } });
 
 require(['vs/editor/editor.main'], function () {
-  // Register Pogscript language
+  // Register language
   monaco.languages.register({ id: 'pogscript' });
 
-  // Define syntax highlighting for Pogscript
+  // Syntax highlighting
   monaco.languages.setMonarchTokensProvider('pogscript', {
     tokenizer: {
       root: [
@@ -199,7 +198,7 @@ require(['vs/editor/editor.main'], function () {
     }
   });
 
-  // Define custom theme for Pogscript
+  // Theme
   monaco.editor.defineTheme('pogscript-dark', {
     base: 'vs-dark',
     inherit: true,
@@ -232,17 +231,17 @@ yap:(txt)`,
     automaticLayout: true
   });
 
-  // Store editor reference globally for resize functionality
+  // Keep editor reference for layout
   window.monacoEditor = editor;
 
-  // Ensure the editor resizes properly
+  // Editor resize
   window.addEventListener('resize', () => {
     editor.layout();
   });
 
   const runBtn = document.getElementById("run");
 
-  // Function to run Pogscript code
+  // Run code
   const runPythonCode = async () => {
     // Interactive run mode: stream output and allow input
     if (window.xterm.isReady()) {
@@ -253,7 +252,7 @@ yap:(txt)`,
 
     const code = editor.getValue();
 
-    // Setup listeners once per run
+  // One-run listeners
     const removeListeners = () => {
       if (outputDispose) outputDispose();
       if (errorDispose) errorDispose();
@@ -265,7 +264,7 @@ yap:(txt)`,
     const write = (text) => window.xterm.write(text);
     const writeln = (text) => window.xterm.writeln(text);
 
-    // Stream program output
+  // Stream output
   let outputDispose = window.pogIDE.onRunOutput((data) => {
       if (!window.xterm.isReady()) return;
       write(data.replace(/\r\n/g, '\n'));
@@ -287,7 +286,7 @@ yap:(txt)`,
       removeListeners();
     });
 
-    // Capture keyboard input and send to process stdin
+  // Capture stdin
     let detachInput = null;
     if (window.xterm.onData) {
       const handler = (data) => {
@@ -319,7 +318,7 @@ yap:(txt)`,
     }
 
     const { started, reason } = await window.pogIDE.startRun(code);
-    if (!started) {
+  if (!started) {
       if (window.xterm.isReady()) {
         writeln(`\x1b[31mFailed to start: ${reason}\x1b[0m`);
         writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m');
@@ -329,7 +328,7 @@ yap:(txt)`,
     }
   };
 
-  // Button click handlers
+  // Buttons
   runBtn.addEventListener("click", runPythonCode);
 
   const buildBtn = document.getElementById("build");
@@ -342,7 +341,7 @@ yap:(txt)`,
     const code = editor.getValue();
     const result = await window.pogIDE.buildCode(code);
     
-    // Display build result in terminal
+  // Build result
     if (window.xterm.isReady()) {
       if (result.includes("Build Error:")) {
         // Display errors in red
@@ -375,7 +374,7 @@ yap:(txt)`,
     }
   });
 
-  // Keyboard shortcut handlers
+  // Shortcuts
   window.pogIDE.onRunShortcut(() => {
     runPythonCode();
   });
@@ -389,7 +388,7 @@ yap:(txt)`,
     const code = editor.getValue();
     const result = await window.pogIDE.buildCode(code);
     
-    // Display build result in terminal
+  // Build result
     if (window.xterm.isReady()) {
       if (result.includes("Build Error:")) {
         // Display errors in red
@@ -422,7 +421,7 @@ yap:(txt)`,
     }
   });
 
-  // Handle edit actions
+  // Edit actions
   window.pogIDE.onEditAction((event, action) => {
     if (window.monacoEditor) {
       switch (action) {
@@ -477,7 +476,7 @@ yap:(txt)`,
   });
 
 
-  // Add keyboard event listeners to handle edit shortcuts when Monaco editor has focus
+  // Editor shortcut listeners
   document.addEventListener('keydown', (event) => {
     // Only handle shortcuts when Monaco editor container has focus
     const editorElement = document.getElementById('editor');
@@ -514,7 +513,7 @@ yap:(txt)`,
     }
   });
 
-  // Helper functions for edit operations
+  // Edit helpers
   function handleCut() {
     const selectedText = window.monacoEditor.getModel().getValueInRange(window.monacoEditor.getSelection());
     if (selectedText) {

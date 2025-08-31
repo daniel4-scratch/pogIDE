@@ -1,8 +1,8 @@
-//preload.js - allows renderer.js to talk to main.js instance
+// Bridge APIs to the renderer
 
 const { contextBridge, ipcRenderer } = require("electron");
 
-// Try to require xterm modules with error handling
+// Lazy-load xterm modules
 let Terminal, FitAddon;
 try {
   const xterm = require('@xterm/xterm');
@@ -14,7 +14,7 @@ try {
   console.error('Failed to load xterm modules in preload:', error);
 }
 
-// Create terminal and fitAddon instances here
+// xterm instances
 let terminal = null;
 let fitAddon = null;
 
@@ -52,7 +52,7 @@ contextBridge.exposeInMainWorld("pogIDE", {
   removeToggleTerminalListener: () => ipcRenderer.removeAllListeners('toggle-terminal'),
 });
 
-// Expose xterm functions without passing objects across the bridge
+// Expose xterm helpers
 contextBridge.exposeInMainWorld("xterm", {
   initialize: (elementId, options) => {
     try {

@@ -20,20 +20,18 @@ let isMac = process.platform === "darwin";
 let isMacARM = isMac && process.arch === "arm64";
 let isWin = process.platform === "win32";
 
-// Global config variables
+// Config
 let configData;
 let configPath;
 
-
-// Disable GPU cache to reduce cache conflicts
+// Chromium flags
 app.commandLine.appendSwitch('--disable-gpu-cache');
 app.commandLine.appendSwitch('--disable-gpu-sandbox');
-// Reduce some cache-related error messages
 app.commandLine.appendSwitch('--no-sandbox');
 
 let mainWindow;
 
-// Track if code is currently running
+// Run-state flag
 let isCodeRunning = false;
 
 // Track active run sessions per window (for interactive stdin/stdout)
@@ -42,9 +40,8 @@ const runSessions = new Map(); // key: webContents.id -> { proc, filePath }
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 
-// Suppress some Chromium cache errors in console for cleaner output
+// Silence output if a second instance is rejected
 if (!gotTheLock) {
-  // Suppress error output for the brief second instance
   process.stderr.write = () => { };
   process.stdout.write = () => { };
 }
@@ -54,11 +51,9 @@ if (!gotTheLock) {
   app.exit(0);
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
-    // Someone tried to run a second instance, we should focus our window instead
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
-      // Create a new window instead of just focusing
       createWindow();
     } else {
       createWindow();
@@ -115,7 +110,7 @@ function createWindow() {
     },
     show: false,
   });
-  // Set mainWindow only if it's not already set (first window)
+  // Set first window as mainWindow
   if (!mainWindow) {
     mainWindow = newWindow;
   }
@@ -366,17 +361,17 @@ function createWindow() {
   newWindow.loadFile(path.join(__dirname, "index.html"));
   registerGlobalShortcuts(newWindow);
 
-  // Handle window closing
+  // Cleanup on window close
   const wcId = newWindow.webContents.id;
   newWindow.on('closed', () => {
-    // Kill any active run session for this window using captured id
+    // Cleanup run session for this window
     const id = wcId;
     const session = runSessions.get(id);
     if (session && session.proc && !session.proc.killed) {
       try { session.proc.kill(); } catch (_) { }
     }
     runSessions.delete(id);
-    // If the closed window was the main window, reassign mainWindow to another window
+    // Reassign mainWindow if needed
     if (newWindow === mainWindow) {
       const allWindows = BrowserWindow.getAllWindows();
       mainWindow = allWindows.length > 0 ? allWindows[0] : null;
@@ -470,7 +465,7 @@ function config() {
     var splash = createSplash();
     splash.webContents.send("text-update", "Loading...");
     await new Promise(resolve => setTimeout(resolve, buffer));
-    splash.webContents.send("text-update", "Checking app folder...");
+  splash.webContents.send("text-update", "Checking app folder...");
 
   // Determine path based on whether app is packaged
   if (isWin || isMacARM) {
@@ -478,18 +473,7 @@ function config() {
 
     if (configData.autoInstallPogscript) {
       if (!fs.existsSync(exePath)) {
-        splash.webContents.send("text-update", "Error: pogscript executable not found");
-
-        // const result = await dialog.showMessageBox(splash, {
-        //   type: 'question',
-        //   title: 'Missing Executable',
-        //   message: 'Install missing executable?',
-        //   detail: 'Do you want to download pogscript.exe?',
-        //   buttons: ['Yes', 'No'],
-        //   cancelId: 1
-        // });
-
-        // Check for internet connection before attempting download
+  splash.webContents.send("text-update", "Error: pogscript executable not found");
 
         const isOnline = await new Promise((resolve) => {
           require('dns').lookup('github.com', (err) => {
@@ -577,11 +561,7 @@ ipcMain.handle("build-code", async (event, code) => {
       });
 
       customProcess.on("close", (code) => {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          // Ignore cleanup errors
-        }
+  try { fs.unlinkSync(filePath); } catch (err) {}
 
         let result = "";
         if (errorOutput) {
@@ -600,11 +580,7 @@ ipcMain.handle("build-code", async (event, code) => {
       });
 
       customProcess.on("error", (error) => {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          // Ignore cleanup errors
-        }
+  try { fs.unlinkSync(filePath); } catch (err) {}
 
         resolve("Build Error: " + error.message);
       });
@@ -659,11 +635,7 @@ ipcMain.handle("run-code", async (event, code) => {
       });
 
       customProcess.on("close", (code) => {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          // Ignore cleanup errors
-        }
+  try { fs.unlinkSync(filePath); } catch (err) {}
 
         let result = "";
         if (errorOutput) {
@@ -680,11 +652,7 @@ ipcMain.handle("run-code", async (event, code) => {
       });
 
       customProcess.on("error", (error) => {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          // Ignore cleanup errors
-        }
+  try { fs.unlinkSync(filePath); } catch (err) {}
 
         finishExecution("Error: " + error.message);
       });
@@ -786,23 +754,6 @@ app.on("will-quit", () => {
 });
 
 app.on("window-all-closed", () => {
-  globalShortcut.unregisterAll();
-  app.quit();
-});
-
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
-
-// Cleanup global shortcuts when app quits
-app.on("will-quit", () => {
-  globalShortcut.unregisterAll();
-});
-
-app.on("window-all-closed", () => {
-  console.log("All windows closed, exiting...");
   globalShortcut.unregisterAll();
   app.quit(); // Always quit when all windows are closed
 });
