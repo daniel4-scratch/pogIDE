@@ -211,6 +211,31 @@ function createWindow() {
       ]
     },
     {
+      label: "View",
+      submenu: [
+        {
+          label: "Toggle Controls Bar",
+          accelerator: isMac ? "Cmd+Shift+C" : "Ctrl+Shift+C",
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("toggle-controls-bar");
+            }
+          }
+        },
+        {
+          label: "Toggle Terminal",
+          accelerator: isMac ? "Cmd+Shift+T" : "Ctrl+Shift+T",
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("toggle-terminal");
+            }
+          }
+        }
+      ]
+    },
+    {
       label: "Run",
       submenu: [
         {

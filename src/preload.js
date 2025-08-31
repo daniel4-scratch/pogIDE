@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld("pogIDE", {
   removeBuildShortcutListener: () => ipcRenderer.removeAllListeners('build-shortcut-pressed'),
   onEditAction: (callback) => ipcRenderer.on('edit-action', callback),
   removeEditActionListener: () => ipcRenderer.removeAllListeners('edit-action'),
+  // Listen for toggle events from main process
+  onToggleControlsBar: (callback) => ipcRenderer.on('toggle-controls-bar', callback),
+  removeToggleControlsBarListener: () => ipcRenderer.removeAllListeners('toggle-controls-bar'),
+  onToggleTerminal: (callback) => ipcRenderer.on('toggle-terminal', callback),
+  removeToggleTerminalListener: () => ipcRenderer.removeAllListeners('toggle-terminal'),
 });
 
 // Expose xterm functions without passing objects across the bridge

@@ -2,6 +2,28 @@
 
 // Wait for DOM to be ready and then initialize terminal
 document.addEventListener('DOMContentLoaded', () => {
+  // --- View Menu Toggle Handlers ---
+  const controlsBar = document.getElementById('controls');
+  const terminal = document.getElementById('terminal');
+
+  // Helper to toggle display
+  function toggleDisplay(element) {
+    if (!element) return;
+    element.style.display = (element.style.display === 'none') ? '' : 'none';
+  }
+
+  // Listen for IPC events from main process
+  window.pogIDE.onToggleControlsBar(() => {
+    toggleDisplay(controlsBar);
+    // Optionally, trigger layout updates if needed
+    if (window.monacoEditor) setTimeout(() => window.monacoEditor.layout(), 0);
+  });
+  window.pogIDE.onToggleTerminal(() => {
+    toggleDisplay(terminal);
+    // Optionally, trigger layout updates if needed
+    if (window.xterm && window.xterm.isReady()) setTimeout(() => window.xterm.fit(), 0);
+    if (window.monacoEditor) setTimeout(() => window.monacoEditor.layout(), 0);
+  });
   // Initialize terminal using wrapper functions from preload script
   const terminalInitialized = window.xterm.initialize("terminal", {
     cursorBlink: true,
@@ -406,6 +428,7 @@ yap:(txt)`,
       }
     }
   });
+
 
   // Add keyboard event listeners to handle edit shortcuts when Monaco editor has focus
   document.addEventListener('keydown', (event) => {
