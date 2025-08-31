@@ -1,18 +1,49 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Electron App",
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
-            "skipFiles": [
-                "<node_internals>/**"
+            "cwd": "${workspaceFolder}",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "start"
             ],
-            "program": "${workspaceFolder}\\src\\main.js",
-            "preLaunchTask": "start"
+            "console": "integratedTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "Launch Electron App (Debug)",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+            "runtimeArgs": [
+                "--inspect=9222",
+                "."
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "Build",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "build"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
         }
     ]
 }
