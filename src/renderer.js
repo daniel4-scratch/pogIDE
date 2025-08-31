@@ -244,41 +244,88 @@ yap:(txt)`,
 
   // Function to run Pogscript code
   const runPythonCode = async () => {
-    // Clear terminal and show "Running..." message
+    // Interactive run mode: stream output and allow input
     if (window.xterm.isReady()) {
       window.xterm.clear();
-      window.xterm.writeln('\x1b[33mRunning Pogscript code...\x1b[0m'); // Yellow text
+      window.xterm.writeln('\x1b[33mRunning Pogscript code...\x1b[0m');
+      window.xterm.focus();
     }
-    
+
     const code = editor.getValue();
-    const result = await window.pogIDE.runCode(code);
-    
-    // Write the result to the terminal
-    if (window.xterm.isReady()) {
-      if (result.includes("Error:")) {
-        // Display errors in red
-        const lines = result.split('\n');
-        lines.forEach(line => {
-          if (line.startsWith("Error:") || line.trim().startsWith("Traceback") || line.trim().startsWith("File ")) {
-            window.xterm.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for errors
-          } else {
-            window.xterm.writeln(line);
-          }
-        });
-      } else {
-        // Display normal output
-        const lines = result.split('\n');
-        lines.forEach(line => {
-          if (line.startsWith("Output:")) {
-            window.xterm.writeln(`\x1b[32m${line}\x1b[0m`); // Green text for "Output:" header
-          } else {
-            window.xterm.writeln(line);
-          }
-        });
+
+    // Setup listeners once per run
+    const removeListeners = () => {
+      if (outputDispose) outputDispose();
+      if (errorDispose) errorDispose();
+      if (exitDispose) exitDispose();
+      outputDispose = errorDispose = exitDispose = null;
+    };
+
+    let inputBuffer = '';
+    const write = (text) => window.xterm.write(text);
+    const writeln = (text) => window.xterm.writeln(text);
+
+    // Stream program output
+  let outputDispose = window.pogIDE.onRunOutput((data) => {
+      if (!window.xterm.isReady()) return;
+      write(data.replace(/\r\n/g, '\n'));
+    });
+  let errorDispose = window.pogIDE.onRunError((data) => {
+      if (!window.xterm.isReady()) return;
+      const lines = String(data).split('\n');
+      for (const line of lines) {
+        if (line) writeln(`\x1b[31m${line}\x1b[0m`);
       }
-      
-      // Add a separator line
-      window.xterm.writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m'); // Cyan separator
+    });
+  let exitDispose = window.pogIDE.onRunExit((code) => {
+      if (!window.xterm.isReady()) return;
+      writeln('');
+      writeln(`\x1b[36mProcess exited with code ${code}\x1b[0m`);
+      writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m');
+      // Stop capturing input
+      if (detachInput) detachInput();
+      removeListeners();
+    });
+
+    // Capture keyboard input and send to process stdin
+    let detachInput = null;
+    if (window.xterm.onData) {
+      const handler = (data) => {
+        // Basic line editing: handle Enter, Backspace; pass through others
+        const code = data.charCodeAt(0);
+        if (data === '\r') { // Enter
+          write('\r\n');
+          window.pogIDE.sendInput(inputBuffer + '\n');
+          inputBuffer = '';
+        } else if (data === '\u0003') { // Ctrl+C
+          writeln('^C');
+          window.pogIDE.stopRun();
+        } else if (data === '\u007F' || code === 127) { // Backspace
+          if (inputBuffer.length > 0) {
+            // Move cursor back, erase char, move back again
+            write('\b \b');
+            inputBuffer = inputBuffer.slice(0, -1);
+          }
+        } else if (data >= ' ' && data <= '~') { // Printable
+          inputBuffer += data;
+          write(data);
+        } else {
+          // Forward any other control sequences as-is (e.g., arrows)
+          window.pogIDE.sendInput(data);
+        }
+      };
+      const dispose = window.xterm.onData(handler);
+      detachInput = () => { try { dispose && dispose(); } catch (e) {} };
+    }
+
+    const { started, reason } = await window.pogIDE.startRun(code);
+    if (!started) {
+      if (window.xterm.isReady()) {
+        writeln(`\x1b[31mFailed to start: ${reason}\x1b[0m`);
+        writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m');
+      }
+      if (detachInput) detachInput();
+      removeListeners();
     }
   };
 

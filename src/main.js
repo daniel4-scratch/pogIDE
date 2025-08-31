@@ -36,6 +36,9 @@ let mainWindow;
 // Track if code is currently running
 let isCodeRunning = false;
 
+// Track active run sessions per window (for interactive stdin/stdout)
+const runSessions = new Map(); // key: webContents.id -> { proc, filePath }
+
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -357,7 +360,15 @@ function createWindow() {
   registerGlobalShortcuts(newWindow);
 
   // Handle window closing
+  const wcId = newWindow.webContents.id;
   newWindow.on('closed', () => {
+    // Kill any active run session for this window using captured id
+    const id = wcId;
+    const session = runSessions.get(id);
+    if (session && session.proc && !session.proc.killed) {
+      try { session.proc.kill(); } catch (_) { }
+    }
+    runSessions.delete(id);
     // If the closed window was the main window, reassign mainWindow to another window
     if (newWindow === mainWindow) {
       const allWindows = BrowserWindow.getAllWindows();
@@ -674,6 +685,80 @@ ipcMain.handle("run-code", async (event, code) => {
       finishExecution("Error: Unsupported platform");
     }
   });
+});
+
+// Start a streaming/interactive run. Streams stdout/stderr to renderer and accepts stdin from renderer.
+ipcMain.handle('start-run', async (event, code) => {
+  if (isCodeRunning) {
+    return { started: false, reason: 'A program is already running' };
+  }
+
+  const tempDir = os.tmpdir();
+  const timestamp = Date.now();
+  const filePath = path.join(tempDir, `temp_code_${timestamp}.txt`);
+  fs.writeFileSync(filePath, code);
+
+  if (!(isWin || isMacARM)) {
+    try { fs.unlinkSync(filePath); } catch (_) { }
+    return { started: false, reason: 'Unsupported platform' };
+  }
+
+  const exePath = checkExePath();
+  if (!fs.existsSync(exePath)) {
+    try { fs.unlinkSync(filePath); } catch (_) { }
+    return { started: false, reason: `pogscript.exe not found at: ${exePath}` };
+  }
+
+  try {
+    const child = spawn(exePath, [filePath]);
+    isCodeRunning = true;
+    const sender = event.sender;
+    runSessions.set(sender.id, { proc: child, filePath });
+
+    child.stdout.on('data', (data) => {
+      try { sender.send('run-output', data.toString()); } catch (_) { }
+    });
+    child.stderr.on('data', (data) => {
+      try { sender.send('run-error', data.toString()); } catch (_) { }
+    });
+    child.on('close', (code) => {
+      try { fs.unlinkSync(filePath); } catch (_) { }
+      isCodeRunning = false;
+      runSessions.delete(sender.id);
+      try { sender.send('run-exit', code); } catch (_) { }
+    });
+    child.on('error', (err) => {
+      try { fs.unlinkSync(filePath); } catch (_) { }
+      isCodeRunning = false;
+      runSessions.delete(sender.id);
+      try { sender.send('run-error', String(err?.message || err)); } catch (_) { }
+      try { sender.send('run-exit', -1); } catch (_) { }
+    });
+
+    return { started: true };
+  } catch (err) {
+    try { fs.unlinkSync(filePath); } catch (_) { }
+    isCodeRunning = false;
+    return { started: false, reason: String(err?.message || err) };
+  }
+});
+
+// Receive stdin data from renderer for active run
+ipcMain.on('run-input', (event, data) => {
+  const session = runSessions.get(event.sender.id);
+  if (session && session.proc && !session.proc.killed) {
+    try { session.proc.stdin.write(data); } catch (_) { }
+  }
+});
+
+// Stop the currently running process (if any)
+ipcMain.handle('stop-run', async (event) => {
+  const session = runSessions.get(event.sender.id);
+  if (session && session.proc && !session.proc.killed) {
+    try { session.proc.kill(); } catch (_) { }
+    return { stopped: true };
+  }
+  return { stopped: false };
 });
 
 // IPC handler for setting text

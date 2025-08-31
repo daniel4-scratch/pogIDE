@@ -21,6 +21,24 @@ let fitAddon = null;
 contextBridge.exposeInMainWorld("pogIDE", {
   runCode: (code) => ipcRenderer.invoke("run-code", code),
   buildCode: (code) => ipcRenderer.invoke("build-code", code),
+  startRun: (code) => ipcRenderer.invoke('start-run', code),
+  stopRun: () => ipcRenderer.invoke('stop-run'),
+  sendInput: (data) => ipcRenderer.send('run-input', data),
+  onRunOutput: (cb) => {
+    const listener = (_, data) => cb(data);
+    ipcRenderer.on('run-output', listener);
+    return () => ipcRenderer.removeListener('run-output', listener);
+  },
+  onRunError: (cb) => {
+    const listener = (_, data) => cb(data);
+    ipcRenderer.on('run-error', listener);
+    return () => ipcRenderer.removeListener('run-error', listener);
+  },
+  onRunExit: (cb) => {
+    const listener = (_, code) => cb(code);
+    ipcRenderer.on('run-exit', listener);
+    return () => ipcRenderer.removeListener('run-exit', listener);
+  },
   onRunShortcut: (callback) => ipcRenderer.on('run-shortcut-pressed', callback),
   removeRunShortcutListener: () => ipcRenderer.removeAllListeners('run-shortcut-pressed'),
   onBuildShortcut: (callback) => ipcRenderer.on('build-shortcut-pressed', callback),
@@ -58,7 +76,7 @@ contextBridge.exposeInMainWorld("xterm", {
         }
       }, 100);
       
-      return true;
+  return true;
     } catch (error) {
       console.error('Error initializing terminal:', error);
       return false;
@@ -86,5 +104,15 @@ contextBridge.exposeInMainWorld("xterm", {
   },
   isReady: () => {
     return terminal !== null && fitAddon !== null;
+  },
+  onData: (cb) => {
+    if (terminal) {
+      const disp = terminal.onData(cb);
+      return () => { try { disp.dispose(); } catch (e) {} };
+    }
+    return () => {};
+  },
+  focus: () => {
+    if (terminal) terminal.focus();
   }
 });
