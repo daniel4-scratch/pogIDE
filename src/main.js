@@ -443,20 +443,6 @@ function createSplash() {
       preload: path.join(__dirname, "splash", "preload.js"),
     },
   });
-  const menu = Menu.buildFromTemplate([
-    {
-      label: "File",
-      submenu: [
-        {
-          label: "Quit",
-          role: "quit"
-        }
-      ]
-    }
-
-  ]);
-
-  Menu.setApplicationMenu(menu);
   splash.loadFile(path.join(__dirname, "splash", "splash.html"));
   return splash;
 }
