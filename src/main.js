@@ -13,7 +13,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const http = require('http');
-const { checkExePath, installExe, uninstallExe } = require("./utils/installer.js");
+const { checkExePath, installExe, uninstallExe } = require("./shared/utils/installer.js");
 const { TIMEOUT } = require("dns");
 const packageJson = require(path.join(__dirname, '..', 'package.json'));
 
