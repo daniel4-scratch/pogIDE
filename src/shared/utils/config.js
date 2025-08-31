@@ -22,7 +22,7 @@ function initializeConfig() {
   const jsonTemplate = {
     autoInstallPogscript: true,
     ui: {
-      controlsVisible: true,
+      controlsVisible: false,
       terminalVisible: true
     }
   };
