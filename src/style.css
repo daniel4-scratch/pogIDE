@@ -4,7 +4,7 @@
 :root {
     --background: #1e1e1e;
     --controls: #333333;
-    --primary-font-color: #d4d4d4;
+    --primary-font-color: white;
     --secondary-font-color: #9cdcfe;
     --primary-color: #007acc;
     --secondary-color: #005a9e;
@@ -89,7 +89,7 @@ body {
 
 #controls .button {
     background: var(--primary-color);
-    color: white;
+    color: var(--primary-font-color);
     border: 0px solid var(--primary-color);
     border-radius: 3px;
     width: 50px;
