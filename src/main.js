@@ -1,4 +1,4 @@
-const { app, nativeTheme, globalShortcut } = require('./shared/utils/constants');
+const { app, nativeTheme, globalShortcut, BrowserWindow } = require('./shared/utils/constants');
 const { initializeConfig } = require('./shared/utils/config');
 const { createWindow, createSplash, setMainWindow, setCodeRunning, checkOnlineStatus } = require('./shared/utils/window');
 const { setupIpcHandlers } = require('./shared/utils/ipc');
@@ -23,9 +23,10 @@ app.whenReady().then(async () => {
   try {
     const { configData } = initializeConfig();
     const splash = createSplash();
+    var buffer = 500;
     splash.webContents.on('did-finish-load', async () => {
         splash.webContents.send("text-update", "Loading...");
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, buffer));
         splash.webContents.send("text-update", "Checking for updates...");
 
         if (isWin || isMacARM) {
@@ -46,7 +47,7 @@ app.whenReady().then(async () => {
             splash.webContents.send("text-update", "Unsupported platform");
         }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, buffer));
         splash.close();
         nativeTheme.themeSource = "dark";
         const mainWin = createWindow();
@@ -61,12 +62,26 @@ setupIpcHandlers();
 
 app.on("window-all-closed", () => {
   globalShortcut.unregisterAll();
-  app.quit();
+  // On macOS, keep the app running even when all windows are closed
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
 app.on("activate", () => {
-  const { mainWindow } = require('./shared/utils/window');
-  if (!mainWindow) {
+  // Check if there are any existing windows first
+  const allWindows = BrowserWindow.getAllWindows();
+  
+  if (allWindows.length > 0) {
+    // Focus the first existing window
+    const existingWindow = allWindows[0];
+    if (existingWindow.isMinimized()) {
+      existingWindow.restore();
+    }
+    existingWindow.show();
+    existingWindow.focus();
+  } else {
+    // Only create a new window if no windows exist
     const mainWin = createWindow();
     setMainWindow(mainWin);
   }

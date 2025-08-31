@@ -98,8 +98,7 @@ function setupWindowEvents(win) {
         runSessions.delete(wcId);
 
         if (win === mainWindow) {
-            const allWindows = BrowserWindow.getAllWindows();
-            mainWindow = allWindows.length > 0 ? allWindows[0] : null;
+            mainWindow = null;
         }
     });
 }
