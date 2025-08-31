@@ -1,6 +1,6 @@
 # Pogscript IDE
 An integrated development environment for Pogscript. Made using electron
-<p align="center"><img width="600" alt="image" src="https://github.com/user-attachments/assets/bc775938-7e47-40d7-a171-6e19df1c44e5" /></p>
+<p align="center"><img width="600" alt="image" src="https://github.com/user-attachments/assets/a314378d-204d-4961-96c9-81099c8bcbff" /></p>
 
 Current Features:
 -   Syntax highlighting
