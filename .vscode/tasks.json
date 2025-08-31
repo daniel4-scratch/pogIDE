@@ -1,0 +1,9 @@
+{
+    "version": "2.0.0",
+    "tasks": [{
+        "label": "start",
+        "command": "npm", // Could be any other shell command
+        "args": ["start"],
+        "type": "shell"
+    }]
+}
