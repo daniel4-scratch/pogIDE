@@ -16,21 +16,6 @@
             }
         },
         {
-            "name": "Launch Electron App (Debug)",
-            "type": "node",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
-            "runtimeArgs": [
-                "--inspect=9222",
-                "."
-            ],
-            "console": "integratedTerminal",
-            "env": {
-                "NODE_ENV": "development"
-            }
-        },
-        {
             "name": "Build",
             "type": "node",
             "request": "launch",
