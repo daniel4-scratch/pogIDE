@@ -50,6 +50,9 @@ contextBridge.exposeInMainWorld("pogIDE", {
   removeToggleControlsBarListener: () => ipcRenderer.removeAllListeners('toggle-controls-bar'),
   onToggleTerminal: (callback) => ipcRenderer.on('toggle-terminal', callback),
   removeToggleTerminalListener: () => ipcRenderer.removeAllListeners('toggle-terminal'),
+  // UI state management
+  saveUIState: (key, value) => ipcRenderer.invoke('save-ui-state', key, value),
+  getUIState: (key) => ipcRenderer.invoke('get-ui-state', key),
 });
 
 // Expose xterm helpers

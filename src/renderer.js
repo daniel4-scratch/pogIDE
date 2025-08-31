@@ -1,24 +1,51 @@
 // Renderer script
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // --- View Menu Toggle Handlers ---
   const controlsBar = document.getElementById('controls');
   const terminal = document.getElementById('terminal');
 
-  // Toggle utility
-  function toggleDisplay(element) {
+  // Load saved UI state
+  try {
+    const controlsState = await window.pogIDE.getUIState('controlsVisible');
+    const terminalState = await window.pogIDE.getUIState('terminalVisible');
+    
+    // Apply saved visibility states
+    if (controlsState.success && controlsState.value === false) {
+      controlsBar.style.display = 'none';
+    }
+    if (terminalState.success && terminalState.value === false) {
+      terminal.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Error loading UI state:', error);
+  }
+
+  // Toggle utility function with state saving
+  async function toggleDisplay(element, stateKey) {
     if (!element) return;
-    element.style.display = (element.style.display === 'none') ? '' : 'none';
+    
+    const isVisible = element.style.display !== 'none';
+    const newVisibility = !isVisible;
+    
+    element.style.display = newVisibility ? '' : 'none';
+    
+    // Save the new state
+    try {
+      await window.pogIDE.saveUIState(stateKey, newVisibility);
+    } catch (error) {
+      console.error('Error saving UI state:', error);
+    }
   }
 
   // View menu events
   window.pogIDE.onToggleControlsBar(() => {
-    toggleDisplay(controlsBar);
+    toggleDisplay(controlsBar, 'controlsVisible');
     // Optionally, trigger layout updates if needed
     if (window.monacoEditor) setTimeout(() => window.monacoEditor.layout(), 0);
   });
   window.pogIDE.onToggleTerminal(() => {
-    toggleDisplay(terminal);
+    toggleDisplay(terminal, 'terminalVisible');
     // Optionally, trigger layout updates if needed
     if (window.xterm && window.xterm.isReady()) setTimeout(() => window.xterm.fit(), 0);
     if (window.monacoEditor) setTimeout(() => window.monacoEditor.layout(), 0);

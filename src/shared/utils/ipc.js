@@ -9,6 +9,7 @@ const {
 } = require('./constants');
 const { checkExePath } = require("./installer.js");
 const { isWin, isMacARM, isCodeRunning, setCodeRunning, runSessions } = require('./window');
+const { updateUIState, getUIState } = require('./config');
 
 function setupIpcHandlers() {
     ipcMain.handle("build-code", handleBuildCode);
@@ -17,6 +18,8 @@ function setupIpcHandlers() {
     ipcMain.on('run-input', handleRunInput);
     ipcMain.handle('stop-run', handleStopRun);
     ipcMain.handle("is-code-running", () => isCodeRunning);
+    ipcMain.handle('save-ui-state', handleSaveUIState);
+    ipcMain.handle('get-ui-state', handleGetUIState);
 }
 
 async function handleBuildCode(event, code) {
@@ -171,6 +174,26 @@ async function handleStopRun(event) {
         return { stopped: true };
     }
     return { stopped: false };
+}
+
+async function handleSaveUIState(event, key, value) {
+    try {
+        updateUIState(key, value);
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving UI state:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function handleGetUIState(event, key) {
+    try {
+        const value = getUIState(key);
+        return { success: true, value };
+    } catch (error) {
+        console.error('Error getting UI state:', error);
+        return { success: false, error: error.message };
+    }
 }
 
 module.exports = { setupIpcHandlers };

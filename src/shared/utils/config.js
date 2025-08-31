@@ -20,7 +20,11 @@ function saveConfig() {
 
 function initializeConfig() {
   const jsonTemplate = {
-    autoInstallPogscript: true
+    autoInstallPogscript: true,
+    ui: {
+      controlsVisible: true,
+      terminalVisible: true
+    }
   };
   
   configPath = getConfigPath();
@@ -43,4 +47,13 @@ module.exports = {
   saveConfig,
   getConfigData: () => configData,
   setConfigData: (data) => { configData = data; },
+  updateUIState: (key, value) => {
+    if (configData && configData.ui) {
+      configData.ui[key] = value;
+      saveConfig();
+    }
+  },
+  getUIState: (key) => {
+    return configData && configData.ui ? configData.ui[key] : null;
+  }
 };
