@@ -147,13 +147,67 @@ function createWindow() {
     {
       label: "Edit",
       submenu: [
-        { label: "Undo", accelerator: "CmdOrCtrl+Z", selector: "undo:" },
-        { label: "Redo", accelerator: "Shift+CmdOrCtrl+Z", selector: "redo:" },
+        { 
+          label: "Undo", 
+          accelerator: "CmdOrCtrl+Z", 
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("edit-action", "undo");
+            }
+          }
+        },
+        { 
+          label: "Redo", 
+          accelerator: "Shift+CmdOrCtrl+Z", 
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("edit-action", "redo");
+            }
+          }
+        },
         { type: "separator" },
-        { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
-        { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
-        { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
-        { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
+        { 
+          label: "Cut", 
+          accelerator: "CmdOrCtrl+X", 
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("edit-action", "cut");
+            }
+          }
+        },
+        { 
+          label: "Copy", 
+          accelerator: "CmdOrCtrl+C", 
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("edit-action", "copy");
+            }
+          }
+        },
+        { 
+          label: "Paste", 
+          accelerator: "CmdOrCtrl+V", 
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("edit-action", "paste");
+            }
+          }
+        },
+        { 
+          label: "Select All", 
+          accelerator: "CmdOrCtrl+A", 
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow && !focusedWindow.isDestroyed()) {
+              focusedWindow.webContents.send("edit-action", "selectAll");
+            }
+          }
+        }
       ]
     },
     {
@@ -319,6 +373,14 @@ function registerGlobalShortcuts(win) {
   globalShortcut.register(runShortcut, () => {
     if (win && !win.isDestroyed()) {
       win.webContents.send("run-shortcut-pressed");
+    }
+  });
+
+  // Register build shortcut
+  const buildShortcut = isMac ? "CommandOrControl+B" : "F6";
+  globalShortcut.register(buildShortcut, () => {
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("build-shortcut-pressed");
     }
   });
 }

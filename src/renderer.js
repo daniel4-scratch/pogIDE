@@ -352,4 +352,140 @@ yap:(txt)`,
       window.xterm.writeln('\x1b[36m' + '─'.repeat(50) + '\x1b[0m'); // Cyan separator
     }
   });
+
+  // Handle edit actions
+  window.pogIDE.onEditAction((event, action) => {
+    if (window.monacoEditor) {
+      switch (action) {
+        case 'undo':
+          window.monacoEditor.trigger('keyboard', 'undo');
+          break;
+        case 'redo':
+          window.monacoEditor.trigger('keyboard', 'redo');
+          break;
+        case 'cut':
+          const selectedText = window.monacoEditor.getModel().getValueInRange(window.monacoEditor.getSelection());
+          if (selectedText) {
+            navigator.clipboard.writeText(selectedText);
+            window.monacoEditor.executeEdits('', [{
+              range: window.monacoEditor.getSelection(),
+              text: ''
+            }]);
+          }
+          break;
+        case 'copy':
+          const textToCopy = window.monacoEditor.getModel().getValueInRange(window.monacoEditor.getSelection());
+          if (textToCopy) {
+            navigator.clipboard.writeText(textToCopy);
+          }
+          break;
+        case 'paste':
+          navigator.clipboard.readText().then(clipText => {
+            if (clipText) {
+              const selection = window.monacoEditor.getSelection();
+              window.monacoEditor.executeEdits('', [{
+                range: selection,
+                text: clipText
+              }]);
+              // Move cursor to the end of the pasted text
+              const lines = clipText.split('\n');
+              const lastLineLength = lines[lines.length - 1].length;
+              const endPosition = {
+                lineNumber: selection.startLineNumber + lines.length - 1,
+                column: lines.length > 1 ? lastLineLength + 1 : selection.startColumn + lastLineLength
+              };
+              window.monacoEditor.setPosition(endPosition);
+            }
+          });
+          break;
+        case 'selectAll':
+          const model = window.monacoEditor.getModel();
+          const fullRange = model.getFullModelRange();
+          window.monacoEditor.setSelection(fullRange);
+          break;
+      }
+    }
+  });
+
+  // Add keyboard event listeners to handle edit shortcuts when Monaco editor has focus
+  document.addEventListener('keydown', (event) => {
+    // Only handle shortcuts when Monaco editor container has focus
+    const editorElement = document.getElementById('editor');
+    if (editorElement && editorElement.contains(document.activeElement)) {
+      const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+      
+      if (isCtrlOrCmd && !event.altKey && !event.shiftKey) {
+        switch (event.key.toLowerCase()) {
+          case 'z':
+            event.preventDefault();
+            window.monacoEditor.trigger('keyboard', 'undo');
+            break;
+          case 'x':
+            event.preventDefault();
+            handleCut();
+            break;
+          case 'c':
+            event.preventDefault();
+            handleCopy();
+            break;
+          case 'v':
+            event.preventDefault();
+            handlePaste();
+            break;
+          case 'a':
+            event.preventDefault();
+            handleSelectAll();
+            break;
+        }
+      } else if (isCtrlOrCmd && event.shiftKey && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        window.monacoEditor.trigger('keyboard', 'redo');
+      }
+    }
+  });
+
+  // Helper functions for edit operations
+  function handleCut() {
+    const selectedText = window.monacoEditor.getModel().getValueInRange(window.monacoEditor.getSelection());
+    if (selectedText) {
+      navigator.clipboard.writeText(selectedText);
+      window.monacoEditor.executeEdits('', [{
+        range: window.monacoEditor.getSelection(),
+        text: ''
+      }]);
+    }
+  }
+
+  function handleCopy() {
+    const textToCopy = window.monacoEditor.getModel().getValueInRange(window.monacoEditor.getSelection());
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
+    }
+  }
+
+  function handlePaste() {
+    navigator.clipboard.readText().then(clipText => {
+      if (clipText) {
+        const selection = window.monacoEditor.getSelection();
+        window.monacoEditor.executeEdits('', [{
+          range: selection,
+          text: clipText
+        }]);
+        // Move cursor to the end of the pasted text
+        const lines = clipText.split('\n');
+        const lastLineLength = lines[lines.length - 1].length;
+        const endPosition = {
+          lineNumber: selection.startLineNumber + lines.length - 1,
+          column: lines.length > 1 ? lastLineLength + 1 : selection.startColumn + lastLineLength
+        };
+        window.monacoEditor.setPosition(endPosition);
+      }
+    });
+  }
+
+  function handleSelectAll() {
+    const model = window.monacoEditor.getModel();
+    const fullRange = model.getFullModelRange();
+    window.monacoEditor.setSelection(fullRange);
+  }
 });

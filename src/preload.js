@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld("pogIDE", {
   removeRunShortcutListener: () => ipcRenderer.removeAllListeners('run-shortcut-pressed'),
   onBuildShortcut: (callback) => ipcRenderer.on('build-shortcut-pressed', callback),
   removeBuildShortcutListener: () => ipcRenderer.removeAllListeners('build-shortcut-pressed'),
+  onEditAction: (callback) => ipcRenderer.on('edit-action', callback),
+  removeEditActionListener: () => ipcRenderer.removeAllListeners('edit-action'),
 });
 
 // Expose xterm functions without passing objects across the bridge
