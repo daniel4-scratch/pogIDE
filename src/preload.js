@@ -105,6 +105,18 @@ contextBridge.exposeInMainWorld("xterm", {
   isReady: () => {
     return terminal !== null && fitAddon !== null;
   },
+  hasSelection: () => {
+    try { return terminal ? terminal.hasSelection() : false; } catch { return false; }
+  },
+  getSelection: () => {
+    try { return terminal ? terminal.getSelection() : ''; } catch { return ''; }
+  },
+  clearSelection: () => {
+    try { if (terminal) terminal.clearSelection(); } catch {}
+  },
+  selectAll: () => {
+    try { if (terminal) terminal.selectAll(); } catch {}
+  },
   onData: (cb) => {
     if (terminal) {
       const disp = terminal.onData(cb);

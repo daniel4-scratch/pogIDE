@@ -423,6 +423,36 @@ yap:(txt)`,
 
   // Edit actions
   window.pogIDE.onEditAction((event, action) => {
+    const editorHasFocus = !!document.activeElement && document.getElementById('editor')?.contains(document.activeElement);
+    const terminalHasFocus = !!document.activeElement && document.getElementById('terminal')?.contains(document.activeElement);
+
+    // Prefer target with focus; fall back to editor when applicable
+    if (terminalHasFocus && window.xterm && window.xterm.isReady()) {
+      switch (action) {
+        case 'copy':
+          if (window.xterm.hasSelection()) {
+            navigator.clipboard.writeText(window.xterm.getSelection());
+            window.xterm.clearSelection();
+          }
+          return;
+        case 'paste':
+          navigator.clipboard.readText().then(text => {
+            if (!text) return;
+            if (window.pogIDE && typeof window.pogIDE.sendInput === 'function') {
+              window.pogIDE.sendInput(text);
+            }
+            if (typeof window.xterm.write === 'function') {
+              window.xterm.write(text.replace(/\r?\n/g, '\r\n'));
+            }
+          });
+          return;
+        case 'selectAll':
+          window.xterm.selectAll();
+          return;
+        // cut/undo/redo/paste don't apply to read-only terminal content
+      }
+    }
+
     if (window.monacoEditor) {
       switch (action) {
         case 'undo':
@@ -455,7 +485,6 @@ yap:(txt)`,
                 range: selection,
                 text: clipText
               }]);
-              // Move cursor to the end of the pasted text
               const lines = clipText.split('\n');
               const lastLineLength = lines[lines.length - 1].length;
               const endPosition = {
@@ -478,9 +507,11 @@ yap:(txt)`,
 
   // Editor shortcut listeners
   document.addEventListener('keydown', (event) => {
-    // Only handle shortcuts when Monaco editor container has focus
     const editorElement = document.getElementById('editor');
-    if (editorElement && editorElement.contains(document.activeElement)) {
+    const terminalElement = document.getElementById('terminal');
+    const editorFocused = editorElement && editorElement.contains(document.activeElement);
+    const terminalFocused = terminalElement && terminalElement.contains(document.activeElement);
+    if (editorFocused) {
       const isCtrlOrCmd = event.ctrlKey || event.metaKey;
       
       if (isCtrlOrCmd && !event.altKey && !event.shiftKey) {
@@ -509,6 +540,32 @@ yap:(txt)`,
       } else if (isCtrlOrCmd && event.shiftKey && event.key.toLowerCase() === 'z') {
         event.preventDefault();
         window.monacoEditor.trigger('keyboard', 'redo');
+      }
+    } else if (terminalFocused && window.xterm && window.xterm.isReady()) {
+      const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+      // Copy selection from terminal
+      if (isCtrlOrCmd && event.key.toLowerCase() === 'c' && window.xterm.hasSelection()) {
+        event.preventDefault();
+        navigator.clipboard.writeText(window.xterm.getSelection());
+        window.xterm.clearSelection();
+      }
+      // Paste into running process stdin
+      if (isCtrlOrCmd && event.key.toLowerCase() === 'v') {
+        event.preventDefault();
+        navigator.clipboard.readText().then(text => {
+          if (!text) return;
+          if (window.pogIDE && typeof window.pogIDE.sendInput === 'function') {
+            window.pogIDE.sendInput(text);
+          }
+          if (window.xterm && typeof window.xterm.write === 'function') {
+            window.xterm.write(text.replace(/\r?\n/g, '\r\n'));
+          }
+        });
+      }
+      // Select all in terminal
+      if (isCtrlOrCmd && event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        window.xterm.selectAll();
       }
     }
   });

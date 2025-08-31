@@ -91,7 +91,7 @@ var fileSubMenu = [
       }
     } },
   { type: "separator" },
-  { label: "Open Project...", accelerator: "CmdOrCtrl+O", click: () => { /* Open folder logic */ } }
+  { label: "Open Project...", enabled: false, accelerator: "CmdOrCtrl+O", click: () => { /* Open folder logic */ } }
 ];
 
 function createWindow() {
@@ -333,6 +333,13 @@ function createWindow() {
       role: "help",
       submenu: [
         {
+          label: "Documentation",
+          click: () => {
+            require("electron").shell.openExternal("https://daniel4-scratch.is-a.dev/pogger-script/Programming.html");
+          }
+        },
+        {type: "separator"},
+        {
           label: "Toggle Developer Tools",
           accelerator: isMac ? "Cmd+Option+I" : "Ctrl+Shift+I",
           click: () => {
@@ -360,6 +367,50 @@ function createWindow() {
 
   newWindow.loadFile(path.join(__dirname, "index.html"));
   registerGlobalShortcuts(newWindow);
+
+  // Ensure keybinds work consistently (even when renderer captures keys)
+  newWindow.webContents.on('before-input-event', (event, input) => {
+    const isCmdOrCtrl = input.control || input.meta;
+    const key = String(input.key || '').toLowerCase();
+    // View toggles: Ctrl/Cmd+Shift+C and Ctrl/Cmd+Shift+T
+    if (isCmdOrCtrl && input.shift && (key === 'c' || key === 't')) {
+      const channel = key === 'c' ? 'toggle-controls-bar' : 'toggle-terminal';
+      try { newWindow.webContents.send(channel); } catch (_) {}
+      event.preventDefault();
+      return;
+    }
+
+    // Edit shortcuts
+    if (isCmdOrCtrl && !input.alt && !input.shift) {
+      switch (key) {
+        case 'a': // Select All
+          try { newWindow.webContents.send('edit-action', 'selectAll'); } catch (_) {}
+          event.preventDefault();
+          return;
+        case 'c': // Copy
+          try { newWindow.webContents.send('edit-action', 'copy'); } catch (_) {}
+          event.preventDefault();
+          return;
+        case 'v': // Paste
+          try { newWindow.webContents.send('edit-action', 'paste'); } catch (_) {}
+          event.preventDefault();
+          return;
+        case 'x': // Cut
+          try { newWindow.webContents.send('edit-action', 'cut'); } catch (_) {}
+          event.preventDefault();
+          return;
+        case 'z': // Undo
+          try { newWindow.webContents.send('edit-action', 'undo'); } catch (_) {}
+          event.preventDefault();
+          return;
+      }
+    }
+    if (isCmdOrCtrl && input.shift && key === 'z') {
+      try { newWindow.webContents.send('edit-action', 'redo'); } catch (_) {}
+      event.preventDefault();
+      return;
+    }
+  });
 
   // Cleanup on window close
   const wcId = newWindow.webContents.id;
