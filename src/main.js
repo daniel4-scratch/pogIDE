@@ -84,7 +84,7 @@ Chromium: ${process.versions.chrome}`
 
 var fileSubMenu = [
   { label: "New Window", accelerator: "CmdOrCtrl+Shift+N", click: () => { createWindow(); } },
-  { label: "Close Window", accelerator: isMac ? "Cmd+W" : "Alt+F4", click: () => {
+  { label: "Close Window", accelerator: isMac ? "Cmd+Shift+W" : "Alt+F4", click: () => {
       const focusedWindow = BrowserWindow.getFocusedWindow();
       if (focusedWindow && !focusedWindow.isDestroyed()) {
         focusedWindow.close();
