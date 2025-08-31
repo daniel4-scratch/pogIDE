@@ -1,3 +1,4 @@
+// ipc.js - Registers and implements all Electron IPC handlers for running/building code and interactive sessions.
 const {
     ipcMain,
     os,

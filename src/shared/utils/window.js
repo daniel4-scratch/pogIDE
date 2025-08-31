@@ -1,3 +1,4 @@
+// window.js - Manages window creation, menu building, global shortcuts, and main window state for the Electron app.
 const {
     app,
     BrowserWindow,

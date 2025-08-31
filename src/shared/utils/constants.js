@@ -1,3 +1,4 @@
+// constants.js - Exports common Electron and Node.js modules for use throughout the app.
 const { app, BrowserWindow, ipcMain, Menu, dialog, globalShortcut, nativeTheme, clipboard } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");

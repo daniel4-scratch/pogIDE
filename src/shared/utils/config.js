@@ -1,3 +1,4 @@
+// config.js - Handles loading, saving, and initializing the global app configuration (config.json).
 const { app, fs, path } = require('./constants');
 
 let configData;

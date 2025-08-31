@@ -1,3 +1,4 @@
+// installer.js - Handles installation, checking, and uninstallation of the pogscript executable for the IDE.
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
