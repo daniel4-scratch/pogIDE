@@ -329,6 +329,7 @@ function createWindow() {
     },
     {
       label: "Help",
+      role: "help",
       submenu: [
         {
           label: "Toggle Developer Tools",
