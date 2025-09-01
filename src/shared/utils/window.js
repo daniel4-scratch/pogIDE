@@ -73,7 +73,7 @@ function createSplash() {
         frame: false,
         resizable: false,
         alwaysOnTop: true,
-        roundedCorners: false,
+        roundedCorners: true,
         skipTaskbar: true,
         hasShadow: true,
         webPreferences: {
