@@ -3,7 +3,7 @@ const { initializeConfig } = require('./shared/utils/config');
 const { createWindow, createSplash, setMainWindow, setCodeRunning, checkOnlineStatus } = require('./shared/utils/window');
 const { setupIpcHandlers } = require('./shared/utils/ipc');
 const { checkExePath, installExe } = require("./shared/utils/installer.js");
-const { isWin, isMacARM } = require('./shared/utils/window');
+const { isWin, isMac, isMacARM } = require('./shared/utils/window');
 
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -63,8 +63,12 @@ setupIpcHandlers();
 app.on("window-all-closed", () => {
   globalShortcut.unregisterAll();
   // On macOS, keep the app running even when all windows are closed
-  if (process.platform !== 'darwin') {
+  if (!isMac) {
     app.quit();
+  }else{
+    if(!app.isPackaged){
+      app.quit();
+    }
   }
 });
 
