@@ -70,16 +70,17 @@ function createSplash() {
     const splash = new BrowserWindow({
         width: 400,
         height: 300,
-        frame: false,
         resizable: false,
         alwaysOnTop: true,
         roundedCorners: true,
         skipTaskbar: true,
         hasShadow: true,
+        titleBarStyle: "hidden",
         webPreferences: {
             preload: path.join(__dirname, '..', '..', 'splash', 'preload.js'),
         },
     });
+    splash.setMenu(null);
     splash.loadFile(path.join(__dirname, '..', '..', 'splash', 'splash.html'));
     return splash;
 }
