@@ -2,3 +2,6 @@ node_modules/
 dist/
 .DS_Store
 app/
+.idea/*
+!.idea/runConfigurations/
+!.idea/codeStyles/
