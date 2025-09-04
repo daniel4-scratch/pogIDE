@@ -80,6 +80,9 @@ function createSplash() {
             preload: path.join(__dirname, '..', '..', 'splash', 'preload.js'),
         },
     });
+    if(isMac){
+        splash.setWindowButtonVisibility(false);
+    }
     splash.setMenu(null);
     splash.loadFile(path.join(__dirname, '..', '..', 'splash', 'splash.html'));
     return splash;
