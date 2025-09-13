@@ -7,6 +7,9 @@ Current Features:
 -   Running and building support
 -   Windows and MacOS support
 
+> [!NOTE]
+> Was mostly vibe coded with Github Copilot 
+
 ## Development
 
 ### Prerequisites
